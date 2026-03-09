@@ -7,7 +7,7 @@ export function ClassicTemplate({ data }) {
     <div className="p-12 h-full font-serif text-gray-800 leading-relaxed max-w-[800px] mx-auto bg-white">
       {/* Header */}
       <header className="text-center mb-8 border-b-2 border-gray-900 pb-6">
-        <h1 className="text-4xl font-bold uppercase tracking-widest mb-2 text-black">
+        <h1 className="text-3xl font-bold uppercase tracking-widest mb-2 text-black">
           {personalInfo.fullName || 'YOUR NAME'}
         </h1>
         <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 text-sm text-gray-600 font-sans">
