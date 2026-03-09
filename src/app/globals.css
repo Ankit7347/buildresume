@@ -143,20 +143,36 @@
     size: A4;
     margin: 0;
   }
-  body {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+
+  /* Essential fix for blank pages on Android/Mobile */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
-  .print-area {
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+    position: relative !important;
+    visibility: visible !important;
     width: 210mm !important;
     min-height: 297mm !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    transform: none !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    position: absolute;
-    left: 0;
-    top: 0;
+    margin: 0 auto !important;
+    background: white !important;
+    left: 0 !important;
+    top: 0 !important;
+    opacity: 1 !important;
+  }
+
+  /* Preserve colors */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }

@@ -96,6 +96,7 @@ export default function BuilderPage() {
     documentTitle: `${resumeData.personalInfo.fullName || "Resume"}_CVFlow`,
   });
 
+
   const handleUpdateField = (section, field, value) => {
     setResumeData((prev) => ({
       ...prev,
@@ -141,10 +142,11 @@ export default function BuilderPage() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
-      <Navbar />
+    <>
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col no-print">
+        <Navbar />
 
-      <main className="flex-1 pt-16 flex overflow-hidden lg:h-[calc(100vh-64px)]">
+      <main className="flex-1 pt-16 flex overflow-hidden lg:h-[calc(100vh-64px)] no-print">
         {/* Left Side: Form Controls */}
         <aside className="w-full lg:w-[45%] h-full overflow-y-auto border-r border-slate-200 bg-white p-6 shadow-sm">
           <div className="max-w-2xl mx-auto space-y-8 pb-20">
@@ -172,8 +174,19 @@ export default function BuilderPage() {
                   onClick={() => setIsSettingsOpen(true)}
                   className="flex-1 sm:flex-none bg-white border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
                 >
-                  <Settings className="w-4 h-4 mr-2" /> Settings
+                  <Settings className="w-4 h-4 sm:mr-2" /> Settings
                 </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => handlePrint()}
+                  className="flex-1 sm:flex-none bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-md active:scale-95"
+                >
+                  <Download className="w-4 h-4 sm:mr-2" /> 
+                  <span className="hidden sm:inline">Download PDF</span>
+                  <span className="sm:hidden">Download</span>
+                </Button>
+
 
               </div>
             </header>
@@ -673,7 +686,6 @@ export default function BuilderPage() {
             {/* Resume Preview Paper */}
             <div className="flex justify-center">
               <div
-                ref={componentRef}
                 className="bg-white text-black shadow-2xl min-h-[297mm] print-area rounded-sm overflow-hidden transform transition-all duration-300 shadow-slate-300/50"
                 style={{
                   width: "210mm",
@@ -689,7 +701,7 @@ export default function BuilderPage() {
       </main>
 
       {/* Mobile Preview Toggle */}
-      <div className="lg:hidden fixed bottom-6 right-6 z-50">
+      <div className="lg:hidden fixed bottom-6 right-6 z-50 no-print">
         <Button
           size="icon"
           className="w-14 h-14 rounded-full shadow-2xl bg-slate-900 text-white hover:bg-slate-800 transition-all scale-110 active:scale-95"
@@ -701,7 +713,7 @@ export default function BuilderPage() {
 
       {/* Mobile Preview Overlay */}
       {isPreviewOpen && (
-        <div className="fixed inset-0 z-[100] bg-black p-2 sm:p-4 flex flex-col lg:hidden">
+        <div className="fixed inset-0 z-[100] bg-black p-2 sm:p-4 flex flex-col lg:hidden no-print">
           <div className="flex flex-col gap-3 mb-4 px-2">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold">Preview</h2>
@@ -756,7 +768,6 @@ export default function BuilderPage() {
               }}
             >
               <div
-                ref={componentRef}
                 className="print-area bg-white rounded-sm origin-top-left"
                 style={{
                   width: "794px",
@@ -840,7 +851,19 @@ export default function BuilderPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+
+      </div>
+
+      {/* Printer: Isolated sibling to ensure it prints even when UI is hidden */}
+      <div 
+        className="fixed top-0 left-0 -z-50 pointer-events-none aria-hidden:true print-only" 
+        style={{ width: "210mm", minHeight: "297mm", overflow: "visible" }}
+      >
+        <div ref={componentRef} className="print-area bg-white">
+          {mounted && resumeData && <ActiveTemplate data={resumeData} />}
+        </div>
+      </div>
+    </>
   );
 }
 
