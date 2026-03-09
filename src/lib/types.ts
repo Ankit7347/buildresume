@@ -48,6 +48,7 @@ export interface ResumeData {
   settings: {
     primaryColor: string;
     fontSize: "small" | "medium" | "large";
+    fileName?: string;
   };
 }
 
@@ -68,5 +69,6 @@ export const initialResumeData: ResumeData = {
   settings: {
     primaryColor: "#0f172a", // Default Slate 900
     fontSize: "medium",
+    fileName: "My_Resume",
   },
 };

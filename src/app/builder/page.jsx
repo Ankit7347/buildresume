@@ -93,7 +93,7 @@ export default function BuilderPage() {
 
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
-    documentTitle: `${resumeData.personalInfo.fullName || "Resume"}_CVFlow`,
+    documentTitle: resumeData.settings?.fileName || `${resumeData.personalInfo.fullName || "Resume"}_CVFlow`,
   });
 
 
@@ -143,8 +143,8 @@ export default function BuilderPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col no-print">
-        <Navbar />
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col no-print">
+      <Navbar />
 
       <main className="flex-1 pt-16 flex overflow-hidden lg:h-[calc(100vh-64px)] no-print">
         {/* Left Side: Form Controls */}
@@ -671,7 +671,7 @@ export default function BuilderPage() {
               <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl flex-wrap">
                 {templateBtn("classic", "Classic")}
                 {templateBtn("modern", "Modern")}
-                {templateBtn("modernminimal", "Modern Minimal")}
+                {templateBtn("modernminimal", "Minimal")}
                 {templateBtn("ats", "ATS")}
               </div>
               <Button
@@ -792,6 +792,20 @@ export default function BuilderPage() {
             <DialogTitle>Resume Settings</DialogTitle>
           </DialogHeader>
           <div className="grid gap-6 py-4">
+            {/* File Name */}
+            <div className="space-y-3">
+              <Label>File Name (for download)</Label>
+              <Input
+                value={resumeData.settings?.fileName || ""}
+                onChange={(e) =>
+                  handleUpdateField("settings", "fileName", e.target.value)
+                }
+                placeholder="e.g. My_New_Resume"
+                className="rounded-xl border-slate-200 focus:ring-primary/20"
+              />
+              <p className="text-[10px] text-slate-400">Your PDF will be saved with this name (no extension needed).</p>
+            </div>
+
             {/* Theme Color */}
             <div className="space-y-3">
               <Label>Theme Color</Label>
@@ -852,14 +866,15 @@ export default function BuilderPage() {
         </DialogContent>
       </Dialog>
 
-      </div>
+    </div>
 
       {/* Printer: Isolated sibling to ensure it prints even when UI is hidden */}
       <div 
-        className="fixed top-0 left-0 -z-50 pointer-events-none aria-hidden:true print-only" 
-        style={{ width: "210mm", minHeight: "297mm", overflow: "visible" }}
+        className="fixed top-0 left-0 -z-9999 pointer-events-none print-only" 
+        aria-hidden="true"
+        style={{ width: "210mm", minHeight: "297mm", overflow: "visible", background: "white" }}
       >
-        <div ref={componentRef} className="print-area bg-white">
+        <div ref={componentRef} className="print-area bg-white text-black p-0 m-0">
           {mounted && resumeData && <ActiveTemplate data={resumeData} />}
         </div>
       </div>
