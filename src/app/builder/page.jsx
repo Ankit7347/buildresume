@@ -130,7 +130,7 @@ export default function BuilderPage() {
                       <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Optional</span>
                     </div>
                     <textarea 
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 h-32 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 resize-none shadow-sm"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 h-32 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 resize-none shadow-sm text-base sm:text-sm"
                       value={resumeData.personalInfo.summary}
                       onChange={(e) => handleUpdateField('personalInfo', 'summary', e.target.value)}
                       placeholder="Briefly describe your career goals and achievements..."
@@ -139,28 +139,31 @@ export default function BuilderPage() {
               </TabsContent>
 
               <TabsContent value="experience" className="space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-slate-900">Work Experience</h3>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
-                    onClick={() => {
-                      const newExp = {
-                        id: Math.random().toString(36).substr(2, 9),
-                        company: '',
-                        position: '',
-                        location: '',
-                        startDate: '',
-                        endDate: '',
-                        description: '',
-                        current: false
-                      };
-                      setResumeData(prev => ({ ...prev, experience: [...prev.experience, newExp] }));
-                    }}
-                  >
-                    <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" /> Add Experience
-                  </Button>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-semibold text-slate-900">Work Experience</h3>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
+                      onClick={() => {
+                        const newExp = {
+                          id: Math.random().toString(36).substr(2, 9),
+                          company: '',
+                          position: '',
+                          location: '',
+                          startDate: '',
+                          endDate: '',
+                          description: '',
+                          current: false
+                        };
+                        setResumeData(prev => ({ ...prev, experience: [...prev.experience, newExp] }));
+                      }}
+                    >
+                      <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" /> Add Experience
+                    </Button>
+                  </div>
+                  <p className="text-xs text-slate-500 italic">Optional. Add only if relevant to your career stage.</p>
                 </div>
                 
                 {resumeData.experience.map((exp, index) => (
@@ -219,7 +222,7 @@ export default function BuilderPage() {
                       )}
                     </div>
                     <textarea 
-                      className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 min-h-[100px] shadow-sm"
+                      className="w-full bg-white border border-slate-200 rounded-xl p-3 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 min-h-[100px] shadow-sm"
                       placeholder="Key achievements and responsibilities..."
                       value={exp.description}
                       onChange={(e) => {
@@ -247,6 +250,7 @@ export default function BuilderPage() {
                         fieldOfStudy: '',
                         startDate: '',
                         endDate: '',
+                        score: '',
                       };
                       setResumeData(prev => ({ ...prev, education: [...prev.education, newEdu] }));
                     }}
@@ -289,6 +293,39 @@ export default function BuilderPage() {
                           setResumeData({ ...resumeData, education: newEdu });
                         }}
                       />
+                      <FormField 
+                        label="Start Year" 
+                        value={edu.startDate}
+                        onChange={(e) => {
+                          const newEdu = [...resumeData.education];
+                          newEdu[index].startDate = e.target.value;
+                          setResumeData({ ...resumeData, education: newEdu });
+                        }}
+                        placeholder="e.g. 2018"
+                      />
+                      <FormField 
+                        label="End Year (or Expected)" 
+                        value={edu.endDate}
+                        onChange={(e) => {
+                          const newEdu = [...resumeData.education];
+                          newEdu[index].endDate = e.target.value;
+                          setResumeData({ ...resumeData, education: newEdu });
+                        }}
+                        placeholder="e.g. 2022"
+                      />
+                      <div className="col-span-2">
+                        <FormField 
+                          label="Percentage / CGPA" 
+                          value={edu.score || ''}
+                          onChange={(e) => {
+                            const newEdu = [...resumeData.education];
+                            newEdu[index].score = e.target.value;
+                            setResumeData({ ...resumeData, education: newEdu });
+                          }}
+                          placeholder="e.g. 8.5 CGPA or 85%"
+                          isOptional={true}
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -340,25 +377,28 @@ export default function BuilderPage() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="projects" className="space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-slate-900">Projects</h3>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
-                    onClick={() => {
-                      const newProject = {
-                        id: Math.random().toString(36).substr(2, 9),
-                        name: '',
-                        description: '',
-                        technologies: []
-                      };
-                      setResumeData(prev => ({ ...prev, projects: [...prev.projects, newProject] }));
-                    }}
-                  >
-                    <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" /> Add Project
-                  </Button>
+              <TabsContent value="projects" className="space-y-6 pb-20">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-semibold text-slate-900">Projects</h3>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
+                      onClick={() => {
+                        const newProject = {
+                          id: Math.random().toString(36).substr(2, 9),
+                          name: '',
+                          description: '',
+                          technologies: []
+                        };
+                        setResumeData(prev => ({ ...prev, projects: [...prev.projects, newProject] }));
+                      }}
+                    >
+                      <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" /> Add Project
+                    </Button>
+                  </div>
+                  <p className="text-xs text-slate-500 italic">Optional. Add only if relevant to your career stage.</p>
                 </div>
                 
                 {resumeData.projects.map((project, index) => (
@@ -386,7 +426,7 @@ export default function BuilderPage() {
                       }}
                     />
                     <textarea 
-                      className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 min-h-[80px] shadow-sm"
+                      className="w-full bg-white border border-slate-200 rounded-xl p-3 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 min-h-[80px] shadow-sm"
                       placeholder="Project description and link..."
                       value={project.description}
                       onChange={(e) => {
@@ -502,7 +542,7 @@ function FormField({ label, value, onChange, placeholder, type = "text", isOptio
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 shadow-sm"
+        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 shadow-sm text-base sm:text-sm"
       />
     </div>
   );

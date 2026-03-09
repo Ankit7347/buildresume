@@ -45,11 +45,11 @@ export function ClassicTemplate({ data }) {
       )}
 
       {/* Experience */}
-      <section className="mb-8">
-        <h3 className="text-lg font-bold uppercase border-b border-gray-300 mb-4 text-black tracking-tight">
-          Experience
-        </h3>
-        {experience.length > 0 ? (
+      {experience.length > 0 && (
+        <section className="mb-8">
+          <h3 className="text-lg font-bold uppercase border-b border-gray-300 mb-4 text-black tracking-tight">
+            Experience
+          </h3>
           <div className="space-y-6">
             {experience.map((exp) => (
               <div key={exp.id} className="relative">
@@ -69,22 +69,23 @@ export function ClassicTemplate({ data }) {
               </div>
             ))}
           </div>
-        ) : (
-          <p className="text-sm text-gray-400 italic">No experience added yet.</p>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* Education */}
-      <section className="mb-8">
-        <h3 className="text-lg font-bold uppercase border-b border-gray-300 mb-4 text-black tracking-tight">
-          Education
-        </h3>
-        {education.length > 0 ? (
+      {education.length > 0 && (
+        <section className="mb-8">
+          <h3 className="text-lg font-bold uppercase border-b border-gray-300 mb-4 text-black tracking-tight">
+            Education
+          </h3>
           <div className="space-y-4">
             {education.map((edu) => (
               <div key={edu.id}>
                 <div className="flex justify-between items-baseline mb-1">
-                  <h4 className="font-bold text-sm text-black">{edu.degree} in {edu.fieldOfStudy}</h4>
+                  <h4 className="font-bold text-sm text-black">
+                    {edu.degree} in {edu.fieldOfStudy}
+                    {edu.score && <span className="ml-2 font-normal text-xs text-gray-500">({edu.score})</span>}
+                  </h4>
                   <span className="text-xs font-semibold text-gray-500 font-sans italic">
                     {edu.startDate} – {edu.endDate}
                   </span>
@@ -93,10 +94,8 @@ export function ClassicTemplate({ data }) {
               </div>
             ))}
           </div>
-        ) : (
-          <p className="text-sm text-gray-400 italic">No education added yet.</p>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* Projects */}
       {projects.length > 0 && (
@@ -118,23 +117,21 @@ export function ClassicTemplate({ data }) {
       )}
 
       {/* Skills */}
-      <section className="mb-8">
-        <h3 className="text-lg font-bold uppercase border-b border-gray-300 mb-3 text-black tracking-tight">
-          Professional Skills
-        </h3>
-        <div className="flex flex-wrap gap-x-6 gap-y-2">
-          {skills.length > 0 ? (
-            skills.map((skill) => (
+      {skills.length > 0 && (
+        <section className="mb-8">
+          <h3 className="text-lg font-bold uppercase border-b border-gray-300 mb-3 text-black tracking-tight">
+            Professional Skills
+          </h3>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {skills.map((skill) => (
               <div key={skill.id} className="flex items-center gap-2">
                 <span className="text-sm font-bold text-gray-800 tracking-tight">• {skill.name}</span>
                 <span className="text-[10px] text-gray-400 font-sans uppercase">({skill.level})</span>
               </div>
-            ))
-          ) : (
-            <p className="text-sm text-gray-400 italic">No skills added yet.</p>
-          )}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

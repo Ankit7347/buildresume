@@ -41,16 +41,18 @@ export function ModernTemplate({ data }) {
           </div>
         </section>
 
-        <section className="space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Skills</h3>
-          <div className="flex flex-wrap gap-2">
-            {skills.map(skill => (
-              <span key={skill.id} className="px-2 py-1 bg-slate-800 rounded text-[11px] font-medium border border-slate-700">
-                {skill.name}
-              </span>
-            ))}
-          </div>
-        </section>
+        {skills.length > 0 && (
+          <section className="space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Skills</h3>
+            <div className="flex flex-wrap gap-2">
+              {skills.map(skill => (
+                <span key={skill.id} className="px-2 py-1 bg-slate-800 rounded text-[11px] font-medium border border-slate-700">
+                  {skill.name}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="space-y-4">
           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Education</h3>
@@ -68,30 +70,34 @@ export function ModernTemplate({ data }) {
 
       {/* Main Content */}
       <main className="flex-1 p-12 space-y-10">
-        <section className="space-y-3">
-          <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 pb-2">Profile</h2>
-          <p className="text-sm leading-relaxed text-slate-600 italic">
-            {personalInfo.summary}
-          </p>
-        </section>
+        {personalInfo.summary && (
+          <section className="space-y-3">
+            <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 pb-2">Profile</h2>
+            <p className="text-sm leading-relaxed text-slate-600 italic">
+              {personalInfo.summary}
+            </p>
+          </section>
+        )}
 
-        <section className="space-y-6">
-          <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 pb-2">Experience</h2>
-          <div className="space-y-8">
-            {experience.map(exp => (
-              <div key={exp.id} className="space-y-2 relative pl-4 border-l-2 border-slate-100">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-bold text-slate-900">{exp.position}</h4>
-                  <span className="text-[10px] font-bold text-slate-400">{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</span>
+        {experience.length > 0 && (
+          <section className="space-y-6">
+            <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 pb-2">Experience</h2>
+            <div className="space-y-8">
+              {experience.map(exp => (
+                <div key={exp.id} className="space-y-2 relative pl-4 border-l-2 border-slate-100">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-bold text-slate-900">{exp.position}</h4>
+                    <span className="text-[10px] font-bold text-slate-400">{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</span>
+                  </div>
+                  <p className="text-xs font-bold text-blue-600">{exp.company}</p>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    {exp.description}
+                  </p>
                 </div>
-                <p className="text-xs font-bold text-blue-600">{exp.company}</p>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  {exp.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        )}
 
         {projects.length > 0 && (
           <section className="space-y-6">
