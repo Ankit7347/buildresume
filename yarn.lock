@@ -2566,6 +2566,7 @@ __metadata:
     react-chartjs-2: "npm:^5.3.1"
     react-dom: "npm:19.2.3"
     react-icons: "npm:^5.6.0"
+    react-to-print: "npm:^3.3.0"
     shadcn: "npm:^4.0.2"
     sonner: "npm:^2.0.7"
     tailwind-merge: "npm:^3.5.0"
@@ -6113,6 +6114,15 @@ __metadata:
     "@types/react":
       optional: true
   checksum: 10c0/841938ff16d16a6b76895f4cb2e1fea957e5fe3b30febbf03a54892dae1c9153f2383e231dea0b3ba41192ad2f2849448fa859caccd288943bce32639e971bee
+  languageName: node
+  linkType: hard
+
+"react-to-print@npm:^3.3.0":
+  version: 3.3.0
+  resolution: "react-to-print@npm:3.3.0"
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ~19
+  checksum: 10c0/a49e3f23499ad883a36676f059354518811093338f603dc4a0cf00a27c13c4729bc0d5d5377ce44b0dd2e2531e61d6485c5812b1c59389d0a32129dea068e83a
   languageName: node
   linkType: hard
 
