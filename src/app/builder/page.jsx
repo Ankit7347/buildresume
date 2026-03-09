@@ -36,13 +36,18 @@ export default function BuilderPage() {
   useEffect(() => {
     const updateScale = () => {
       const screenWidth = window.innerWidth;
-      const resumeWidth = 800;
+      const resumeWidth = 794; // 210mm in pixels at 96dpi
 
       if (screenWidth < 1024) {
-        const scale = screenWidth / resumeWidth;
+        // Mobile: provide a little padding
+        const scale = (screenWidth - 32) / resumeWidth;
         setPreviewScale(scale);
       } else {
-        setPreviewScale(1);
+        // Desktop: calculate scale based on the preview pane roughly
+        // The preview pane is roughly 55% of the screen minus padding
+        const previewPaneWidth = (screenWidth * 0.55) - 96;
+        const scale = Math.min(1, previewPaneWidth / resumeWidth);
+        setPreviewScale(scale);
       }
     };
 
@@ -618,7 +623,7 @@ export default function BuilderPage() {
 
         {/* Right Side: Instant Preview */}
         <section className="hidden lg:block flex-1 bg-slate-200/50 overflow-y-auto p-12 scrollbar-none">
-          <div className="max-w-[800px] mx-auto space-y-6">
+          <div className="max-w-[1024px] mx-auto space-y-6">
             <div className="flex items-center justify-between bg-white/50 backdrop-blur-sm p-3 rounded-2xl border border-white shadow-sm ring-1 ring-slate-200/50">
               <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl flex-wrap">
                 {templateBtn("classic", "Classic")}
@@ -636,11 +641,18 @@ export default function BuilderPage() {
             </div>
 
             {/* Resume Preview Paper */}
-            <div
-              ref={componentRef}
-              className="bg-white text-black shadow-2xl min-h-[1056px] w-full rounded-sm overflow-hidden origin-top scale-[0.95] transition-transform duration-300"
-            >
-              <ActiveTemplate data={resumeData} />
+            <div className="flex justify-center">
+              <div
+                ref={componentRef}
+                className="bg-white text-black shadow-2xl min-h-[297mm] print-area rounded-sm overflow-hidden transform transition-all duration-300 shadow-slate-300/50"
+                style={{
+                  width: "210mm",
+                  transform: `scale(${previewScale})`,
+                  transformOrigin: "top center",
+                }}
+              >
+                <ActiveTemplate data={resumeData} />
+              </div>
             </div>
           </div>
         </section>
@@ -692,17 +704,26 @@ export default function BuilderPage() {
             </div>
           </div>
 
-          <div className="flex-1 bg-white rounded-xl overflow-auto w-full flex justify-center">
-            <div
-              ref={componentRef}
-              className="mx-auto shadow-lg"
+          <div className="flex-1 bg-white rounded-xl overflow-auto w-full flex justify-center py-4 px-2">
+            <div 
+              className="relative shadow-2xl"
               style={{
-                minWidth: "800px",
-                transform: `scale(${previewScale})`,
-                transformOrigin: "top center",
+                width: `${794 * previewScale}px`,
+                height: `${1122 * previewScale}px`,
+                overflow: 'hidden'
               }}
             >
-              <ActiveTemplate data={resumeData} />
+              <div
+                ref={componentRef}
+                className="print-area bg-white rounded-sm origin-top-left"
+                style={{
+                  width: "794px",
+                  height: "1122px",
+                  transform: `scale(${previewScale})`,
+                }}
+              >
+                <ActiveTemplate data={resumeData} />
+              </div>
             </div>
           </div>
           <div className="mt-4 p-4 bg-slate-100 border border-slate-200 rounded-xl text-center text-xs text-slate-500">

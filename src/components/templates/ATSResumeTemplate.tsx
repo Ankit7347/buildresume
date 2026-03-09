@@ -9,7 +9,7 @@ const ATSResumeTemplateComponent = ({ data }: ATSResumeTemplateProps) => {
   const { personalInfo, experience, education, skills, projects } = data;
 
   return (
-    <div className="max-w-[800px] mx-auto bg-white p-10 text-black font-sans">
+    <div className="min-h-[297mm] mx-auto bg-white p-10 text-black font-sans">
 
       <header className="text-center mb-6">
         <h1 className="text-2xl font-bold">{personalInfo.fullName}</h1>

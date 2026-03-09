@@ -9,7 +9,7 @@ const ModernTemplateComponent = ({ data }: ModernTemplateProps) => {
   const { personalInfo, experience, education, skills, projects } = data;
 
   return (
-    <div className="flex h-full min-h-[1056px] bg-white text-slate-800 font-sans">
+    <div className="flex h-full min-h-[297mm] bg-white text-slate-800 font-sans">
       {/* Sidebar */}
       <aside className="w-[30%] bg-slate-900 text-white p-8 space-y-8">
         <div className="space-y-4">

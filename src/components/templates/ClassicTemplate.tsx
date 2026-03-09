@@ -9,7 +9,7 @@ const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
   const { personalInfo, experience, education, skills, projects } = data;
 
   return (
-    <div className="p-12 h-full font-serif text-gray-800 leading-relaxed max-w-[800px] mx-auto bg-white">
+    <div className="p-12 min-h-[297mm] font-serif text-gray-800 leading-relaxed bg-white">
       {/* Header */}
       <header className="text-center mb-8 border-b-2 border-gray-900 pb-6">
         <h1 className="text-3xl font-bold uppercase tracking-widest mb-2 text-black">

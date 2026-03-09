@@ -9,7 +9,7 @@ const ModernMinimalTemplateComponent = ({ data }: ModernMinimalTemplateProps) =>
   const { personalInfo, experience, education, skills, projects } = data;
 
   return (
-    <div className="max-w-[800px] mx-auto bg-white p-10 text-gray-800 font-sans">
+    <div className="min-h-[297mm] mx-auto bg-white p-10 text-gray-800 font-sans">
 
       {/* Header */}
       <header className="mb-8">
