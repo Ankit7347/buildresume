@@ -6,13 +6,20 @@ interface ATSResumeTemplateProps {
 }
 
 const ATSResumeTemplateComponent = ({ data }: ATSResumeTemplateProps) => {
-  const { personalInfo, experience, education, skills, projects } = data;
+  const { personalInfo, experience, education, skills, projects, settings } = data;
+  const primaryColor = settings?.primaryColor || "#000000";
+
+  const fontSizeMap = {
+    small: "text-xs",
+    medium: "text-sm",
+    large: "text-base",
+  };
+  const baseFontSize = fontSizeMap[settings?.fontSize || "medium"];
 
   return (
-    <div className="min-h-[297mm] mx-auto bg-white p-10 text-black font-sans">
-
+    <div className={`min-h-[297mm] mx-auto bg-white p-10 text-black font-sans ${baseFontSize}`}>
       <header className="text-center mb-6">
-        <h1 className="text-2xl font-bold">{personalInfo.fullName}</h1>
+        <h1 className="text-2xl font-bold" style={{ color: primaryColor }}>{personalInfo.fullName}</h1>
 
         <p className="text-sm">
           {personalInfo.email} | {personalInfo.phone} | {personalInfo.location}

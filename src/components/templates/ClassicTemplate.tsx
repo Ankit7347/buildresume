@@ -6,14 +6,23 @@ interface ClassicTemplateProps {
 }
 
 const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
-  const { personalInfo, experience, education, skills, projects } = data;
+  const { personalInfo, experience, education, skills, projects, settings } = data;
+  const primaryColor = settings?.primaryColor || "#000000";
+
+  const fontSizeMap = {
+    small: "text-xs",
+    medium: "text-sm",
+    large: "text-base",
+  };
+
+  const baseFontSize = fontSizeMap[settings?.fontSize || "medium"];
 
   return (
-    <div className="p-12 min-h-[297mm] font-serif text-gray-800 leading-relaxed bg-white">
+    <div className={`p-12 min-h-[297mm] font-serif text-gray-800 leading-relaxed bg-white ${baseFontSize}`}>
       {/* Header */}
-      <header className="text-center mb-8 border-b-2 border-gray-900 pb-6">
-        <h1 className="text-3xl font-bold uppercase tracking-widest mb-2 text-black">
-          {personalInfo.fullName || 'YOUR NAME'}
+      <header className="text-center mb-8 pb-6" style={{ borderBottom: `2px solid ${primaryColor}` }}>
+        <h1 className="text-3xl font-bold uppercase tracking-widest mb-2" style={{ color: primaryColor }}>
+          {personalInfo.fullName || "YOUR NAME"}
         </h1>
         <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 text-sm text-gray-600 font-sans">
           {personalInfo.email && <span>{personalInfo.email}</span>}
@@ -40,7 +49,7 @@ const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
       {/* Summary */}
       {personalInfo.summary && (
         <section className="mb-8">
-          <h3 className="text-lg font-bold uppercase border-b border-gray-300 mb-3 text-black tracking-tight">
+          <h3 className="text-lg font-bold uppercase border-b mb-3 tracking-tight" style={{ color: primaryColor, borderBottomColor: `${primaryColor}40` }}>
             Professional Summary
           </h3>
           <p className="text-sm text-gray-700 leading-relaxed text-justify">
@@ -52,7 +61,7 @@ const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
       {/* Experience */}
       {experience.length > 0 && (
         <section className="mb-8">
-          <h3 className="text-lg font-bold uppercase border-b border-gray-300 mb-4 text-black tracking-tight">
+          <h3 className="text-lg font-bold uppercase border-b mb-4 tracking-tight" style={{ color: primaryColor, borderBottomColor: `${primaryColor}40` }}>
             Experience
           </h3>
           <div className="space-y-6">
@@ -80,7 +89,7 @@ const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
       {/* Education */}
       {education.length > 0 && (
         <section className="mb-8">
-          <h3 className="text-lg font-bold uppercase border-b border-gray-300 mb-4 text-black tracking-tight">
+          <h3 className="text-lg font-bold uppercase border-b mb-4 tracking-tight" style={{ color: primaryColor, borderBottomColor: `${primaryColor}40` }}>
             Education
           </h3>
           <div className="space-y-4">
@@ -105,7 +114,7 @@ const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
       {/* Projects */}
       {projects.length > 0 && (
         <section className="mb-8">
-          <h3 className="text-lg font-bold uppercase border-b border-gray-300 mb-4 text-black tracking-tight">
+          <h3 className="text-lg font-bold uppercase border-b mb-4 tracking-tight" style={{ color: primaryColor, borderBottomColor: `${primaryColor}40` }}>
             Key Projects
           </h3>
           <div className="space-y-4">
@@ -124,7 +133,7 @@ const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
       {/* Skills */}
       {skills.length > 0 && (
         <section className="mb-8">
-          <h3 className="text-lg font-bold uppercase border-b border-gray-300 mb-3 text-black tracking-tight">
+          <h3 className="text-lg font-bold uppercase border-b mb-3 tracking-tight" style={{ color: primaryColor, borderBottomColor: `${primaryColor}40` }}>
             Professional Skills
           </h3>
           <div className="flex flex-wrap gap-x-6 gap-y-2">

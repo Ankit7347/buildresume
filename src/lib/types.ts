@@ -33,6 +33,11 @@ export interface ResumeData {
     name: string;
     level: string; // e.g., Beginner, Intermediate, Expert
   }[];
+  languages: {
+    id: string;
+    name: string;
+    proficiency: string;
+  }[];
   projects: {
     id: string;
     name: string;
@@ -40,25 +45,28 @@ export interface ResumeData {
     link?: string;
     technologies: string[];
   }[];
-  languages: {
-    id: string;
-    name: string;
-    proficiency: string;
-  }[];
+  settings: {
+    primaryColor: string;
+    fontSize: "small" | "medium" | "large";
+  };
 }
 
 export const initialResumeData: ResumeData = {
   personalInfo: {
-    fullName: '',
-    email: '',
-    phone: '',
-    location: '',
-    title: '',
-    summary: '',
+    fullName: "",
+    email: "",
+    phone: "",
+    location: "",
+    title: "",
+    summary: "",
   },
   experience: [],
   education: [],
   skills: [],
   projects: [],
   languages: [],
+  settings: {
+    primaryColor: "#0f172a", // Default Slate 900
+    fontSize: "medium",
+  },
 };

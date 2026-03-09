@@ -6,12 +6,20 @@ interface ModernTemplateProps {
 }
 
 const ModernTemplateComponent = ({ data }: ModernTemplateProps) => {
-  const { personalInfo, experience, education, skills, projects } = data;
+  const { personalInfo, experience, education, skills, projects, settings } = data;
+  const primaryColor = settings?.primaryColor || "#0f172a";
+
+  const fontSizeMap = {
+    small: "text-xs",
+    medium: "text-sm",
+    large: "text-base",
+  };
+  const baseFontSize = fontSizeMap[settings?.fontSize || "medium"];
 
   return (
-    <div className="flex h-full min-h-[297mm] bg-white text-slate-800 font-sans">
+    <div className={`flex h-full min-h-[297mm] bg-white text-slate-800 font-sans ${baseFontSize}`}>
       {/* Sidebar */}
-      <aside className="w-[30%] bg-slate-900 text-white p-8 space-y-8">
+      <aside className="w-[30%] text-white p-8 space-y-8" style={{ backgroundColor: primaryColor }}>
         <div className="space-y-4">
           <div className="w-24 h-24 bg-slate-700 rounded-2xl flex items-center justify-center text-3xl font-bold uppercase overflow-hidden">
             {personalInfo.fullName ? personalInfo.fullName[0] : "?"}
@@ -146,7 +154,7 @@ const ModernTemplateComponent = ({ data }: ModernTemplateProps) => {
                     </span>
                   </div>
 
-                  <p className="text-xs font-bold text-blue-600">
+                  <p className="text-xs font-bold" style={{ color: primaryColor }}>
                     {exp.company}
                   </p>
 

@@ -17,6 +17,23 @@ import {
   Plus,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+
 
 // Templates
 import { ClassicTemplate } from "@/components/templates/ClassicTemplate";
@@ -31,8 +48,19 @@ export default function BuilderPage() {
   );
   const [activeTemplate, setActiveTemplate] = useState("classic");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
+  const colorPresets = [
+    { name: "Slate", value: "#0f172a" },
+    { name: "Blue", value: "#2563eb" },
+    { name: "Indigo", value: "#4f46e5" },
+    { name: "Violet", value: "#7c3aed" },
+    { name: "Emerald", value: "#059669" },
+    { name: "Rose", value: "#e11d48" },
+    { name: "Amber", value: "#d97706" },
+  ];
+
   useEffect(() => {
     const updateScale = () => {
       const screenWidth = window.innerWidth;
@@ -141,10 +169,12 @@ export default function BuilderPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="hidden sm:flex bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="flex-1 sm:flex-none bg-white border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
                 >
                   <Settings className="w-4 h-4 mr-2" /> Settings
                 </Button>
+
               </div>
             </header>
 
@@ -680,9 +710,21 @@ export default function BuilderPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handlePrint()}
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                 >
-                  <Download className="w-4 h-4" />
+                  <Settings className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Settings</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handlePrint()}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  <Download className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Download</span>
                 </Button>
 
                 <Button
@@ -731,6 +773,73 @@ export default function BuilderPage() {
           </div>
         </div>
       )}
+
+      {/* Settings Dialog */}
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Resume Settings</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            {/* Theme Color */}
+            <div className="space-y-3">
+              <Label>Theme Color</Label>
+              <div className="flex flex-wrap gap-2">
+                {colorPresets.map((color) => (
+                  <button
+                    key={color.value}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${
+                      resumeData.settings?.primaryColor === color.value
+                        ? "border-slate-900 scale-110 shadow-sm"
+                        : "border-transparent"
+                    }`}
+                    style={{ backgroundColor: color.value }}
+                    onClick={() =>
+                      handleUpdateField("settings", "primaryColor", color.value)
+                    }
+                    title={color.name}
+                  />
+                ))}
+                <div className="relative w-8 h-8 rounded-full border-2 border-slate-200 overflow-hidden ring-offset-2 focus-within:ring-2 focus-within:ring-slate-400">
+                  <input
+                    type="color"
+                    className="absolute inset-0 w-full h-full cursor-pointer scale-150 outline-none border-none p-0"
+                    value={resumeData.settings?.primaryColor || "#0f172a"}
+                    onChange={(e) =>
+                      handleUpdateField("settings", "primaryColor", e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Font Size */}
+            <div className="space-y-3">
+              <Label>Font Size</Label>
+              <Select
+                value={resumeData.settings?.fontSize || "medium"}
+                onValueChange={(value) =>
+                  handleUpdateField("settings", "fontSize", value)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select font size" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="small">Small</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="large">Large</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsSettingsOpen(false)} className="w-full sm:w-auto">
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
