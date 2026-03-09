@@ -1,11 +1,16 @@
 import React from "react";
+import { ResumeData } from "@/lib/types";
 
-export function ModernMinimalTemplate({ data }) {
+interface ModernMinimalTemplateProps {
+  data: ResumeData;
+}
+
+const ModernMinimalTemplateComponent = ({ data }: ModernMinimalTemplateProps) => {
   const { personalInfo, experience, education, skills, projects } = data;
 
   return (
     <div className="max-w-[800px] mx-auto bg-white p-10 text-gray-800 font-sans">
-      
+
       {/* Header */}
       <header className="mb-8">
         <h1 className="text-3xl font-bold">{personalInfo.fullName}</h1>
@@ -105,5 +110,8 @@ export function ModernMinimalTemplate({ data }) {
         </section>
       )}
     </div>
+
   );
-}
+};
+
+export const ModernMinimalTemplate = React.memo(ModernMinimalTemplateComponent);

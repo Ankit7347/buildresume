@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef,useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useLocalStorageTTL } from "@/lib/hooks/use-local-storage-ttl";
 import { initialResumeData } from "@/lib/types";
 import { Navbar } from "@/components/Navbar";
@@ -32,6 +32,25 @@ export default function BuilderPage() {
   const [activeTemplate, setActiveTemplate] = useState("classic");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
+  useEffect(() => {
+    const updateScale = () => {
+      const screenWidth = window.innerWidth;
+      const resumeWidth = 800;
+
+      if (screenWidth < 1024) {
+        const scale = screenWidth / resumeWidth;
+        setPreviewScale(scale);
+      } else {
+        setPreviewScale(1);
+      }
+    };
+
+    updateScale();
+    window.addEventListener("resize", updateScale);
+
+    return () => window.removeEventListener("resize", updateScale);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -74,6 +93,17 @@ export default function BuilderPage() {
     >
       {label}
     </Button>
+  );
+  const templates = {
+    classic: ClassicTemplate,
+    modern: ModernTemplate,
+    modernminimal: ModernMinimalTemplate,
+    ats: ATSResumeTemplate,
+  };
+
+  const ActiveTemplate = React.useMemo(
+    () => templates[activeTemplate],
+    [activeTemplate],
   );
   if (!mounted) return null;
 
@@ -610,21 +640,7 @@ export default function BuilderPage() {
               ref={componentRef}
               className="bg-white text-black shadow-2xl min-h-[1056px] w-full rounded-sm overflow-hidden origin-top scale-[0.95] transition-transform duration-300"
             >
-              {activeTemplate === "classic" && (
-                <ClassicTemplate data={resumeData} />
-              )}
-
-              {activeTemplate === "modern" && (
-                <ModernTemplate data={resumeData} />
-              )}
-
-              {activeTemplate === "modernminimal" && (
-                <ModernMinimalTemplate data={resumeData} />
-              )}
-
-              {activeTemplate === "ats" && (
-                <ATSResumeTemplate data={resumeData} />
-              )}
+              <ActiveTemplate data={resumeData} />
             </div>
           </div>
         </section>
@@ -644,39 +660,51 @@ export default function BuilderPage() {
       {/* Mobile Preview Overlay */}
       {isPreviewOpen && (
         <div className="fixed inset-0 z-[100] bg-black p-2 sm:p-4 flex flex-col lg:hidden">
-          <div className="flex justify-between items-center mb-4 px-2">
-            <h2 className="text-xl font-bold">Preview</h2>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handlePrint()}
-                title="Download"
-              >
-                <Download className="w-4 h-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => setIsPreviewOpen(false)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
+          <div className="flex flex-col gap-3 mb-4 px-2">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold">Preview</h2>
 
-          <div className="flex-1 bg-white rounded-xl overflow-auto w-full relative">
-            <div className="min-w-[800px] bg-white text-black shadow-inner">
-              <div className="scale-[0.5] sm:scale-[0.7] md:scale-100 origin-top transform transition-all duration-300">
-                {activeTemplate === "classic" ? (
-                  <ClassicTemplate data={resumeData} />
-                ) : (
-                  <ModernTemplate data={resumeData} />
-                )}
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handlePrint()}
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setIsPreviewOpen(false)}
+                >
+                  Close
+                </Button>
               </div>
             </div>
+
+            {/* TEMPLATE SWITCHER */}
+            <div className="flex gap-2 overflow-x-auto">
+              {templateBtn("classic", "Classic")}
+              {templateBtn("modern", "Modern")}
+              {templateBtn("modernminimal", "Minimal")}
+              {templateBtn("ats", "ATS")}
+            </div>
           </div>
 
+          <div className="flex-1 bg-white rounded-xl overflow-auto w-full flex justify-center">
+            <div
+              ref={componentRef}
+              className="mx-auto shadow-lg"
+              style={{
+                minWidth: "800px",
+                transform: `scale(${previewScale})`,
+                transformOrigin: "top center",
+              }}
+            >
+              <ActiveTemplate data={resumeData} />
+            </div>
+          </div>
           <div className="mt-4 p-4 bg-slate-100 border border-slate-200 rounded-xl text-center text-xs text-slate-500">
             Swipe to explore or use Desktop for best experience.
           </div>

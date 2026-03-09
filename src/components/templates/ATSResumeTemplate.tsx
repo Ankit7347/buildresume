@@ -1,6 +1,11 @@
 import React from "react";
+import { ResumeData } from "@/lib/types";
 
-export function ATSResumeTemplate({ data }) {
+interface ATSResumeTemplateProps {
+  data: ResumeData;
+}
+
+const ATSResumeTemplateComponent = ({ data }: ATSResumeTemplateProps) => {
   const { personalInfo, experience, education, skills, projects } = data;
 
   return (
@@ -77,4 +82,6 @@ export function ATSResumeTemplate({ data }) {
       )}
     </div>
   );
-}
+};
+
+export const ATSResumeTemplate = React.memo(ATSResumeTemplateComponent);

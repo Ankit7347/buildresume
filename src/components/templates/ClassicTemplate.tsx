@@ -1,6 +1,11 @@
 import React from 'react';
+import { ResumeData } from '@/lib/types';
 
-export function ClassicTemplate({ data }) {
+interface ClassicTemplateProps {
+  data: ResumeData;
+}
+
+const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
   const { personalInfo, experience, education, skills, projects } = data;
 
   return (
@@ -134,4 +139,6 @@ export function ClassicTemplate({ data }) {
       )}
     </div>
   );
-}
+};
+
+export const ClassicTemplate = React.memo(ClassicTemplateComponent);

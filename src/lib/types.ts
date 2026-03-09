@@ -26,6 +26,7 @@ export interface ResumeData {
     startDate: string;
     endDate: string;
     description: string;
+    score?: string;
   }[];
   skills: {
     id: string;
