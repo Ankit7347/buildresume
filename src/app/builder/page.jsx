@@ -125,7 +125,10 @@ export default function BuilderPage() {
                     />
                  </div>
                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-600">Professional Summary</label>
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm font-medium text-slate-600">Professional Summary</label>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Optional</span>
+                    </div>
                     <textarea 
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 h-32 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 resize-none shadow-sm"
                       value={resumeData.personalInfo.summary}
