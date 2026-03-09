@@ -406,7 +406,7 @@ export default function BuilderPage() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="absolute top-3 right-3 text-slate-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all rounded-full"
+                      className="absolute top-3 right-3 text-slate-400 hover:text-red-500 hover:bg-red-50 opacity-100 group-hover:opacity-100 transition-all rounded-full"
                       onClick={() => {
                         setResumeData(prev => ({
                           ...prev,
