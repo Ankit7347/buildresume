@@ -20,18 +20,24 @@ export function ModernTemplate({ data }) {
         <section className="space-y-4">
           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Contact</h3>
           <div className="space-y-2 text-sm text-slate-300">
-            <p className="flex flex-col">
-              <span className="text-slate-500 text-[10px] uppercase font-bold">Email</span>
-              {personalInfo.email}
-            </p>
-            <p className="flex flex-col">
-              <span className="text-slate-500 text-[10px] uppercase font-bold">Phone</span>
-              {personalInfo.phone}
-            </p>
-            <p className="flex flex-col">
-              <span className="text-slate-500 text-[10px] uppercase font-bold">Location</span>
-              {personalInfo.location}
-            </p>
+            {personalInfo.email && (
+              <p className="flex flex-col">
+                <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Email</span>
+                <span className="break-all">{personalInfo.email}</span>
+              </p>
+            )}
+            {personalInfo.phone && (
+              <p className="flex flex-col">
+                <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Phone</span>
+                {personalInfo.phone}
+              </p>
+            )}
+            {personalInfo.location && (
+              <p className="flex flex-col">
+                <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Location</span>
+                {personalInfo.location}
+              </p>
+            )}
           </div>
         </section>
 

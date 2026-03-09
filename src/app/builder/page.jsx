@@ -12,7 +12,9 @@ import {
   ChevronLeft, 
   ChevronRight,
   Eye,
-  Settings
+  Settings,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -42,6 +44,12 @@ export default function BuilderPage() {
     }));
   };
 
+  const resetData = () => {
+    if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+      setResumeData(initialResumeData);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
       <Navbar />
@@ -56,7 +64,15 @@ export default function BuilderPage() {
                 <p className="text-slate-500 text-xs sm:text-sm">Draft your professional footprint.</p>
               </div>
               <div className="flex gap-2 w-full sm:w-auto">
-                <Button variant="outline" size="sm" className="flex-1 sm:flex-none bg-white border-slate-200 text-slate-600 hover:bg-slate-50">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={resetData}
+                  className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" /> Clear All
+                </Button>
+                <Button variant="outline" size="sm" className="hidden sm:flex bg-white border-slate-200 text-slate-600 hover:bg-slate-50">
                   <Settings className="w-4 h-4 mr-2" /> Settings
                 </Button>
               </div>
@@ -80,11 +96,12 @@ export default function BuilderPage() {
                       onChange={(e) => handleUpdateField('personalInfo', 'fullName', e.target.value)}
                       placeholder="John Doe"
                     />
-                    <FormField 
+                     <FormField 
                       label="Job Title" 
                       value={resumeData.personalInfo.title}
                       onChange={(e) => handleUpdateField('personalInfo', 'title', e.target.value)}
                       placeholder="Senior Developer"
+                      isOptional
                     />
                     <FormField 
                       label="Email" 
@@ -97,12 +114,14 @@ export default function BuilderPage() {
                       value={resumeData.personalInfo.phone}
                       onChange={(e) => handleUpdateField('personalInfo', 'phone', e.target.value)}
                       placeholder="+1 234 567 890"
+                      isOptional
                     />
                     <FormField 
                       label="Location" 
                       value={resumeData.personalInfo.location}
                       onChange={(e) => handleUpdateField('personalInfo', 'location', e.target.value)}
                       placeholder="New York, NY"
+                      isOptional
                     />
                  </div>
                  <div className="space-y-2">
@@ -122,7 +141,7 @@ export default function BuilderPage() {
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg"
+                    className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
                     onClick={() => {
                       const newExp = {
                         id: Math.random().toString(36).substr(2, 9),
@@ -137,7 +156,7 @@ export default function BuilderPage() {
                       setResumeData(prev => ({ ...prev, experience: [...prev.experience, newExp] }));
                     }}
                   >
-                    + Add Experience
+                    <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" /> Add Experience
                   </Button>
                 </div>
                 
@@ -216,7 +235,7 @@ export default function BuilderPage() {
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg"
+                    className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
                     onClick={() => {
                       const newEdu = {
                         id: Math.random().toString(36).substr(2, 9),
@@ -229,7 +248,7 @@ export default function BuilderPage() {
                       setResumeData(prev => ({ ...prev, education: [...prev.education, newEdu] }));
                     }}
                   >
-                    + Add Education
+                    <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" /> Add Education
                   </Button>
                 </div>
                 
@@ -278,7 +297,7 @@ export default function BuilderPage() {
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg"
+                    className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
                     onClick={() => {
                       const newSkill = {
                         id: Math.random().toString(36).substr(2, 9),
@@ -288,7 +307,7 @@ export default function BuilderPage() {
                       setResumeData(prev => ({ ...prev, skills: [...prev.skills, newSkill] }));
                     }}
                   >
-                    + Add Skill
+                    <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" /> Add Skill
                   </Button>
                 </div>
                 
@@ -324,7 +343,7 @@ export default function BuilderPage() {
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg"
+                    className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
                     onClick={() => {
                       const newProject = {
                         id: Math.random().toString(36).substr(2, 9),
@@ -335,7 +354,7 @@ export default function BuilderPage() {
                       setResumeData(prev => ({ ...prev, projects: [...prev.projects, newProject] }));
                     }}
                   >
-                    + Add Project
+                    <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" /> Add Project
                   </Button>
                 </div>
                 
@@ -466,10 +485,15 @@ export default function BuilderPage() {
   );
 }
 
-function FormField({ label, value, onChange, placeholder, type = "text" }) {
+function FormField({ label, value, onChange, placeholder, type = "text", isOptional = false }) {
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-slate-600">{label}</label>
+      <div className="flex justify-between items-center">
+        <label className="text-sm font-medium text-slate-600">{label}</label>
+        {isOptional && (
+          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Optional</span>
+        )}
+      </div>
       <input 
         type={type}
         value={value}

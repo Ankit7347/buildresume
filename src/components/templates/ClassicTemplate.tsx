@@ -10,10 +10,20 @@ export function ClassicTemplate({ data }) {
         <h1 className="text-4xl font-bold uppercase tracking-widest mb-2 text-black">
           {personalInfo.fullName || 'YOUR NAME'}
         </h1>
-        <div className="flex justify-center flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 font-sans">
+        <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 text-sm text-gray-600 font-sans">
           {personalInfo.email && <span>{personalInfo.email}</span>}
-          {personalInfo.phone && <span>• {personalInfo.phone}</span>}
-          {personalInfo.location && <span>• {personalInfo.location}</span>}
+          {personalInfo.phone && (
+            <>
+              {personalInfo.email && <span className="text-gray-300">•</span>}
+              <span>{personalInfo.phone}</span>
+            </>
+          )}
+          {personalInfo.location && (
+            <>
+              {(personalInfo.email || personalInfo.phone) && <span className="text-gray-300">•</span>}
+              <span>{personalInfo.location}</span>
+            </>
+          )}
         </div>
         {personalInfo.title && (
           <h2 className="mt-4 text-lg font-semibold text-gray-700 tracking-wide font-sans">
@@ -87,6 +97,25 @@ export function ClassicTemplate({ data }) {
           <p className="text-sm text-gray-400 italic">No education added yet.</p>
         )}
       </section>
+
+      {/* Projects */}
+      {projects.length > 0 && (
+        <section className="mb-8">
+          <h3 className="text-lg font-bold uppercase border-b border-gray-300 mb-4 text-black tracking-tight">
+            Key Projects
+          </h3>
+          <div className="space-y-4">
+            {projects.map((project) => (
+              <div key={project.id}>
+                <h4 className="font-bold text-sm text-black mb-1">{project.name}</h4>
+                <p className="text-sm text-gray-600 leading-snug">
+                  {project.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Skills */}
       <section className="mb-8">
