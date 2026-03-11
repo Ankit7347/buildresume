@@ -485,6 +485,17 @@ export default function BuilderPage() {
                           newEdu[index].degree = e.target.value;
                           setResumeData({ ...resumeData, education: newEdu });
                         }}
+                        placeholder="e.g. Bachelor of Science"
+                      />
+                      <FormField
+                        label="Field of Study"
+                        value={edu.fieldOfStudy}
+                        onChange={(e) => {
+                          const newEdu = [...resumeData.education];
+                          newEdu[index].fieldOfStudy = e.target.value;
+                          setResumeData({ ...resumeData, education: newEdu });
+                        }}
+                        placeholder="e.g. Computer Science"
                       />
                       <FormField
                         label="Start Year"

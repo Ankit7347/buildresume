@@ -88,11 +88,12 @@ const ModernMinimalTemplateComponent = ({ data }: ModernMinimalTemplateProps) =>
           {education.map((edu) => (
             <div key={edu.id}>
               <h3 className="font-semibold text-sm">
-                {edu.degree} in {edu.fieldOfStudy}
+                {edu.degree}{edu.fieldOfStudy && ` in ${edu.fieldOfStudy}`}
               </h3>
 
               <p className="text-sm text-gray-600">
                 {edu.school} ({edu.startDate} - {edu.endDate})
+                {edu.score && <span className="ml-2 font-medium italic"> • {edu.score}</span>}
               </p>
             </div>
           ))}

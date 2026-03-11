@@ -100,14 +100,15 @@ const ModernTemplateComponent = ({ data }: ModernTemplateProps) => {
           <div className="space-y-4">
             {education.map((edu) => (
               <div key={edu.id} className="space-y-1">
-                <p className="text-xs font-bold">{edu.degree}</p>
+                <p className="text-xs font-bold">{edu.degree}{edu.fieldOfStudy && ` in ${edu.fieldOfStudy}`}</p>
 
                 <p className="text-[11px] text-slate-400">
                   {edu.school}
                 </p>
 
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[10px] text-slate-500 font-medium">
                   {edu.startDate} - {edu.endDate}
+                  {edu.score && <span className="ml-1 text-slate-300 italic">• {edu.score}</span>}
                 </p>
               </div>
             ))}

@@ -97,7 +97,7 @@ const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
               <div key={edu.id}>
                 <div className="flex justify-between items-baseline mb-1">
                   <h4 className="font-bold text-sm text-black">
-                    {edu.degree} in {edu.fieldOfStudy}
+                    {edu.degree}{edu.fieldOfStudy && ` in ${edu.fieldOfStudy}`}
                     {edu.score && <span className="ml-2 font-normal text-xs text-gray-500">({edu.score})</span>}
                   </h4>
                   <span className="text-xs font-semibold text-gray-500 font-sans italic">

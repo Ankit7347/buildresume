@@ -72,7 +72,8 @@ const ATSResumeTemplateComponent = ({ data }: ATSResumeTemplateProps) => {
 
           {education.map((edu) => (
             <div key={edu.id} className="text-sm">
-              {edu.degree} in {edu.fieldOfStudy} — {edu.school}
+              {edu.degree}{edu.fieldOfStudy && ` in ${edu.fieldOfStudy}`} — {edu.school} ({edu.startDate} - {edu.endDate})
+              {edu.score && <span className="ml-2 font-semibold">• {edu.score}</span>}
             </div>
           ))}
         </section>
