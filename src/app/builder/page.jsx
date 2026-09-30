@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useLocalStorageTTL } from "@/lib/hooks/use-local-storage-ttl";
-import { initialResumeData } from "@/lib/types";
+import { initialResumeData, corporateSampleData, defaultSectionOrder } from "@/lib/types";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { useReactToPrint } from "react-to-print";
@@ -15,6 +15,15 @@ import {
   Settings,
   Trash2,
   Plus,
+  Sparkles,
+  Award,
+  Info,
+  SlidersHorizontal,
+  RotateCcw,
+  Upload,
+  FileJson,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -25,37 +34,45 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
-
 // Templates
+import { CorporateTemplate } from "@/components/templates/CorporateTemplate";
 import { ClassicTemplate } from "@/components/templates/ClassicTemplate";
 import { ModernTemplate } from "@/components/templates/ModernTemplate";
 import { ModernMinimalTemplate } from "@/components/templates/ModernMinimalTemplate";
 import { ATSResumeTemplate } from "@/components/templates/ATSResumeTemplate";
+import { FloatingReorderCard } from "@/components/ui/FloatingReorderCard";
+import { BulletPointsEditor } from "@/components/ui/BulletPointsEditor";
+import { reorderList } from "@/lib/utils";
 
 export default function BuilderPage() {
   const [resumeData, setResumeData] = useLocalStorageTTL(
     "resume-data",
     initialResumeData,
   );
-  const [activeTemplate, setActiveTemplate] = useState("classic");
+  const [activeTemplate, setActiveTemplate] = useState("corporate");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+  const [jsonInput, setJsonInput] = useState("");
+  const [jsonError, setJsonError] = useState("");
+  const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
+
   const colorPresets = [
+    { name: "Black (Corporate)", value: "#000000" },
     { name: "Slate", value: "#0f172a" },
     { name: "Blue", value: "#2563eb" },
     { name: "Indigo", value: "#4f46e5" },
-    { name: "Violet", value: "#7c3aed" },
     { name: "Emerald", value: "#059669" },
     { name: "Rose", value: "#e11d48" },
     { name: "Amber", value: "#d97706" },
@@ -71,8 +88,7 @@ export default function BuilderPage() {
         const scale = (screenWidth - 32) / resumeWidth;
         setPreviewScale(scale);
       } else {
-        // Desktop: calculate scale based on the preview pane roughly
-        // The preview pane is roughly 55% of the screen minus padding
+        // Desktop: calculate scale based on preview container
         const previewPaneWidth = (screenWidth * 0.55) - 96;
         const scale = Math.min(1, previewPaneWidth / resumeWidth);
         setPreviewScale(scale);
@@ -91,20 +107,160 @@ export default function BuilderPage() {
 
   const componentRef = useRef(null);
 
+  // Fallbacks to safely support older localStorage data
+  const normalizedData = React.useMemo(() => {
+    const data = resumeData || initialResumeData;
+    return {
+      ...data,
+      personalInfo: {
+        fullName: "",
+        email: "",
+        phone: "",
+        location: "",
+        title: "",
+        summary: "",
+        objective: "",
+        ...(data.personalInfo || {}),
+      },
+      sectionTitles: {
+        objective: "CAREER OBJECTIVE",
+        education: "EDUCATION",
+        skills: "SKILLS",
+        experience: "INTERNSHIP EXPERIENCE",
+        projects: "RESEARCH PROJECTS",
+        certifications: "CERTIFICATIONS",
+        additionalInfo: "ADDITIONAL INFORMATION",
+        ...(data.sectionTitles || {}),
+      },
+      experience: data.experience || [],
+      education: data.education || [],
+      skills: data.skills || [],
+      projects: data.projects || [],
+      languages: data.languages || [],
+      certifications: data.certifications || [],
+      additionalInfo: data.additionalInfo || [],
+      sectionOrder: data.sectionOrder || defaultSectionOrder,
+      settings: {
+        primaryColor: "#000000",
+        fontSize: "medium",
+        fileName: "My_Resume",
+        ...(data.settings || {}),
+      },
+    };
+  }, [resumeData]);
+
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
-    documentTitle: resumeData.settings?.fileName || `${resumeData.personalInfo.fullName || "Resume"}_CVFlow`,
+    documentTitle: normalizedData.settings?.fileName || `${normalizedData.personalInfo.fullName || "Resume"}_CVFlow`,
   });
-
 
   const handleUpdateField = (section, field, value) => {
     setResumeData((prev) => ({
       ...prev,
       [section]: {
-        ...prev[section],
+        ...(prev?.[section] || {}),
         [field]: value,
       },
     }));
+  };
+
+  const moveItem = (section, index, direction) => {
+    setResumeData((prev) => {
+      const currentList = prev?.[section] || [];
+      const updatedList = reorderList(currentList, index, direction);
+      return {
+        ...prev,
+        [section]: updatedList,
+      };
+    });
+  };
+
+  const moveSection = (index, direction) => {
+    setResumeData((prev) => {
+      const currentOrder = prev?.sectionOrder || defaultSectionOrder;
+      const updatedOrder = reorderList(currentOrder, index, direction);
+      return {
+        ...prev,
+        sectionOrder: updatedOrder,
+      };
+    });
+  };
+
+  const resetSectionOrder = () => {
+    setResumeData((prev) => ({
+      ...prev,
+      sectionOrder: [...defaultSectionOrder],
+    }));
+  };
+
+  const exportAsJSON = () => {
+    try {
+      const dataToExport = resumeData || normalizedData || initialResumeData;
+      const jsonString = JSON.stringify(dataToExport, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const personName = (normalizedData.personalInfo?.fullName || "Resume")
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]/g, "_");
+      link.href = url;
+      link.download = `${personName || "Resume"}_Data.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export JSON failed:", err);
+      alert("Failed to export JSON: " + err.message);
+    }
+  };
+
+  const copyJSONToClipboard = () => {
+    try {
+      const dataToExport = resumeData || normalizedData || initialResumeData;
+      const jsonString = JSON.stringify(dataToExport, null, 2);
+      navigator.clipboard.writeText(jsonString).then(() => {
+        setCopiedSuccess(true);
+        setTimeout(() => setCopiedSuccess(false), 2500);
+      });
+    } catch (err) {
+      console.error("Copy JSON failed:", err);
+    }
+  };
+
+  const handleImportJSON = (customString) => {
+    const rawText = typeof customString === "string" ? customString : jsonInput;
+    if (!rawText.trim()) {
+      setJsonError("Please paste valid JSON text or upload a JSON file.");
+      return;
+    }
+    try {
+      setJsonError("");
+      const parsed = JSON.parse(rawText.trim());
+      if (!parsed || typeof parsed !== "object") {
+        throw new Error("Invalid format. The JSON must be an object representing resume data.");
+      }
+      setResumeData(parsed);
+      setIsJsonModalOpen(false);
+      setJsonInput("");
+      alert("Successfully auto-filled all resume fields from JSON!");
+    } catch (err) {
+      setJsonError("JSON Parse Error: " + err.message);
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result;
+      if (typeof content === "string") {
+        setJsonInput(content);
+        handleImportJSON(content);
+      }
+    };
+    reader.readAsText(file);
   };
 
   const resetData = () => {
@@ -114,6 +270,16 @@ export default function BuilderPage() {
       setResumeData(initialResumeData);
     }
   };
+
+  const loadSampleMBAData = () => {
+    if (
+      confirm("Load the MBA / Corporate example resume template? This will populate all sections with sample data.")
+    ) {
+      setResumeData(corporateSampleData);
+      setActiveTemplate("corporate");
+    }
+  };
+
   const templateBtn = (key, label) => (
     <Button
       size="sm"
@@ -121,14 +287,16 @@ export default function BuilderPage() {
       onClick={() => setActiveTemplate(key)}
       className={
         activeTemplate === key
-          ? "bg-slate-900 text-white hover:bg-slate-800"
+          ? "bg-slate-900 text-white hover:bg-slate-800 shadow-sm"
           : "text-slate-600 hover:bg-slate-200"
       }
     >
       {label}
     </Button>
   );
+
   const templates = {
+    corporate: CorporateTemplate,
     classic: ClassicTemplate,
     modern: ModernTemplate,
     modernminimal: ModernMinimalTemplate,
@@ -136,180 +304,560 @@ export default function BuilderPage() {
   };
 
   const ActiveTemplate = React.useMemo(
-    () => templates[activeTemplate],
+    () => templates[activeTemplate] || CorporateTemplate,
     [activeTemplate],
   );
+
   if (!mounted) return null;
 
   return (
     <>
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col no-print">
-      <Navbar />
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col no-print">
+        <Navbar />
 
-      <main className="flex-1 pt-16 flex overflow-hidden lg:h-[calc(100vh-64px)] no-print">
-        {/* Left Side: Form Controls */}
-        <aside className="w-full lg:w-[45%] h-full overflow-y-auto border-r border-slate-200 bg-white p-6 shadow-sm">
-          <div className="max-w-2xl mx-auto space-y-8 pb-20">
-            <header className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
-              <div className="text-center sm:text-left">
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-                  Resume Builder
-                </h1>
-                <p className="text-slate-500 text-xs sm:text-sm">
-                  Draft your professional footprint.
-                </p>
-              </div>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetData}
-                  className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" /> Clear All
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsSettingsOpen(true)}
-                  className="flex-1 sm:flex-none bg-white border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
-                >
-                  <Settings className="w-4 h-4 sm:mr-2" /> Settings
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => handlePrint()}
-                  className="flex-1 sm:flex-none bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-md active:scale-95"
-                >
-                  <Download className="w-4 h-4 sm:mr-2" /> 
-                  <span className="hidden sm:inline">Download PDF</span>
-                  <span className="sm:hidden">Download</span>
-                </Button>
-
-
-              </div>
-            </header>
-
-            <Tabs defaultValue="personal" className="w-full">
-              <TabsList className="bg-slate-100/50 border border-slate-200 w-full justify-start overflow-x-auto no-scrollbar mb-6 p-1 rounded-xl">
-                <TabsTrigger
-                  value="personal"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg"
-                >
-                  Personal
-                </TabsTrigger>
-                <TabsTrigger
-                  value="experience"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg"
-                >
-                  Experience
-                </TabsTrigger>
-                <TabsTrigger
-                  value="education"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg"
-                >
-                  Education
-                </TabsTrigger>
-                <TabsTrigger
-                  value="skills"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg"
-                >
-                  Skills
-                </TabsTrigger>
-                <TabsTrigger
-                  value="projects"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg"
-                >
-                  Projects
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="personal" className="space-y-6">
-                {/* Personal Info Form */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    label="Full Name"
-                    value={resumeData.personalInfo.fullName}
-                    onChange={(e) =>
-                      handleUpdateField(
-                        "personalInfo",
-                        "fullName",
-                        e.target.value,
-                      )
-                    }
-                    placeholder="John Doe"
-                  />
-                  <FormField
-                    label="Job Title"
-                    value={resumeData.personalInfo.title}
-                    onChange={(e) =>
-                      handleUpdateField("personalInfo", "title", e.target.value)
-                    }
-                    placeholder="Senior Developer"
-                    isOptional
-                  />
-                  <FormField
-                    label="Email"
-                    value={resumeData.personalInfo.email}
-                    onChange={(e) =>
-                      handleUpdateField("personalInfo", "email", e.target.value)
-                    }
-                    placeholder="john@example.com"
-                  />
-                  <FormField
-                    label="Phone"
-                    value={resumeData.personalInfo.phone}
-                    onChange={(e) =>
-                      handleUpdateField("personalInfo", "phone", e.target.value)
-                    }
-                    placeholder="+1 234 567 890"
-                    isOptional
-                  />
-                  <FormField
-                    label="Location"
-                    value={resumeData.personalInfo.location}
-                    onChange={(e) =>
-                      handleUpdateField(
-                        "personalInfo",
-                        "location",
-                        e.target.value,
-                      )
-                    }
-                    placeholder="New York, NY"
-                    isOptional
-                  />
+        <main className="flex-1 pt-16 flex overflow-hidden lg:h-[calc(100vh-64px)] no-print">
+          {/* Left Side: Form Controls */}
+          <aside className="w-full lg:w-[45%] h-full overflow-y-auto border-r border-slate-200 bg-white p-6 shadow-sm">
+            <div className="max-w-2xl mx-auto space-y-6 pb-20">
+              <header className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+                <div className="text-center sm:text-left">
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+                    Resume Builder
+                  </h1>
+                  <p className="text-slate-500 text-xs sm:text-sm">
+                    Build a recruiter-approved professional resume.
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label className="text-sm font-medium text-slate-600">
-                      Professional Summary
-                    </label>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                      Optional
-                    </span>
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportAsJSON}
+                    className="border-emerald-300 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition-colors font-semibold shadow-xs"
+                    title="Export and download your complete resume data as a JSON file"
+                  >
+                    <FileJson className="w-3.5 h-3.5 mr-1.5 text-emerald-600" /> Export JSON
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setJsonInput("");
+                      setJsonError("");
+                      setIsJsonModalOpen(true);
+                    }}
+                    className="border-blue-300 text-blue-800 bg-blue-50 hover:bg-blue-100 transition-colors font-medium shadow-xs"
+                    title="Paste or upload JSON to auto-fill all fields instantly"
+                  >
+                    <Upload className="w-3.5 h-3.5 mr-1.5 text-blue-600" /> Import JSON
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadSampleMBAData}
+                    className="border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 transition-colors font-medium shadow-xs"
+                    title="Load the MBA / Corporate example from template"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-600" /> Load Example
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetData}
+                    className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1.5" /> Clear
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <Settings className="w-4 h-4 sm:mr-1.5" /> Settings
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handlePrint()}
+                    className="bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-md active:scale-95"
+                  >
+                    <Download className="w-4 h-4 sm:mr-1.5" />
+                    <span>Download PDF</span>
+                  </Button>
+                </div>
+              </header>
+
+              <Tabs defaultValue="personal" className="w-full">
+                <TabsList className="bg-slate-100/70 border border-slate-200 w-full justify-start overflow-x-auto no-scrollbar mb-6 p-1 rounded-xl gap-1">
+                  <TabsTrigger
+                    value="personal"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs sm:text-sm font-medium"
+                  >
+                    Personal
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="objective"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs sm:text-sm font-medium"
+                  >
+                    Objective
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="education"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs sm:text-sm font-medium"
+                  >
+                    Education
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="skills"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs sm:text-sm font-medium"
+                  >
+                    Skills
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="experience"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs sm:text-sm font-medium"
+                  >
+                    Experience
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="projects"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs sm:text-sm font-medium"
+                  >
+                    Projects
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="certifications"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs sm:text-sm font-medium"
+                  >
+                    Certifications
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="additional"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs sm:text-sm font-medium"
+                  >
+                    Additional Info
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="titles"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs sm:text-sm font-medium text-slate-700"
+                  >
+                    Section Order & Titles
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* PERSONAL INFO TAB */}
+                <TabsContent value="personal" className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      label="Full Name"
+                      value={normalizedData.personalInfo.fullName}
+                      onChange={(e) =>
+                        handleUpdateField(
+                          "personalInfo",
+                          "fullName",
+                          e.target.value,
+                        )
+                      }
+                      placeholder="e.g. RUDRANSH SRIVASTAV"
+                    />
+                    <FormField
+                      label="Job Title / Subtitle"
+                      value={normalizedData.personalInfo.title}
+                      onChange={(e) =>
+                        handleUpdateField("personalInfo", "title", e.target.value)
+                      }
+                      placeholder="e.g. MBA Candidate | Marketing & Finance"
+                      isOptional
+                    />
+                    <FormField
+                      label="Email"
+                      value={normalizedData.personalInfo.email}
+                      onChange={(e) =>
+                        handleUpdateField("personalInfo", "email", e.target.value)
+                      }
+                      placeholder="e.g. rudranshsrivastav91@gmail.com"
+                    />
+                    <FormField
+                      label="Phone"
+                      value={normalizedData.personalInfo.phone}
+                      onChange={(e) =>
+                        handleUpdateField("personalInfo", "phone", e.target.value)
+                      }
+                      placeholder="e.g. +91-9696908226"
+                      isOptional
+                    />
+                    <div className="col-span-1 md:col-span-2">
+                      <FormField
+                        label="Location / Address"
+                        value={normalizedData.personalInfo.location}
+                        onChange={(e) =>
+                          handleUpdateField(
+                            "personalInfo",
+                            "location",
+                            e.target.value,
+                          )
+                        }
+                        placeholder="e.g. Greater Noida, Uttar Pradesh – 201310"
+                        isOptional
+                      />
+                    </div>
                   </div>
-                  <textarea
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 h-32 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 resize-none shadow-sm text-base sm:text-sm"
-                    value={resumeData.personalInfo.summary}
-                    onChange={(e) =>
-                      handleUpdateField(
-                        "personalInfo",
-                        "summary",
-                        e.target.value,
-                      )
-                    }
-                    placeholder="Briefly describe your career goals and achievements..."
-                  />
-                </div>
-              </TabsContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm font-medium text-slate-700">
+                        Professional Summary (Optional)
+                      </label>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                        Optional
+                      </span>
+                    </div>
+                    <textarea
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 h-28 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 resize-none shadow-sm text-sm"
+                      value={normalizedData.personalInfo.summary}
+                      onChange={(e) =>
+                        handleUpdateField(
+                          "personalInfo",
+                          "summary",
+                          e.target.value,
+                        )
+                      }
+                      placeholder="Brief overview of your career background..."
+                    />
+                  </div>
+                </TabsContent>
 
-              <TabsContent value="experience" className="space-y-6">
-                <div>
+                {/* CAREER OBJECTIVE TAB */}
+                <TabsContent value="objective" className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900">
+                        Career Objective
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        A focused summary of your career focus and core value proposition.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <textarea
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 h-36 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 shadow-sm text-sm leading-relaxed"
+                      value={normalizedData.personalInfo.objective}
+                      onChange={(e) => {
+                        handleUpdateField("personalInfo", "objective", e.target.value);
+                        if (!normalizedData.personalInfo.summary) {
+                          handleUpdateField("personalInfo", "summary", e.target.value);
+                        }
+                      }}
+                      placeholder="e.g. Motivated and analytical MBA student specializing in Marketing & Finance with practical internship exposure in financial services (BFSI), client acquisition, investment analysis, and market research. Seeking to leverage analytical competencies, financial modeling, customer relationship skills, and AI for Managers training to drive business growth and strategic marketing excellence in a dynamic corporate environment."
+                    />
+
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                      <span className="text-xs font-semibold text-slate-600">Quick Objective Presets:</span>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 bg-white"
+                          onClick={() => {
+                            const val = "Motivated and analytical MBA student specializing in Marketing & Finance with practical internship exposure in financial services (BFSI), client acquisition, investment analysis, and market research. Seeking to leverage analytical competencies, financial modeling, customer relationship skills, and AI for Managers training to drive business growth and strategic marketing excellence in a dynamic corporate environment.";
+                            handleUpdateField("personalInfo", "objective", val);
+                            handleUpdateField("personalInfo", "summary", val);
+                          }}
+                        >
+                          MBA (Marketing & Finance)
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 bg-white"
+                          onClick={() => {
+                            const val = "Results-driven Software Engineer with a solid background in full-stack web development, RESTful APIs, and cloud services. Seeking to apply strong algorithmic problem-solving and clean code practices to deliver high-impact digital solutions in an agile environment.";
+                            handleUpdateField("personalInfo", "objective", val);
+                            handleUpdateField("personalInfo", "summary", val);
+                          }}
+                        >
+                          Software / Tech
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 bg-white"
+                          onClick={() => {
+                            const val = "Detail-oriented Finance & Marketing professional with hands-on experience in financial modeling, valuation, equity analysis, and consumer market strategy. Seeking an opportunity to drive financial profitability, strategic growth, and brand leadership in a dynamic corporate environment.";
+                            handleUpdateField("personalInfo", "objective", val);
+                            handleUpdateField("personalInfo", "summary", val);
+                          }}
+                        >
+                          Finance & Marketing
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* EDUCATION TAB */}
+                <TabsContent value="education" className="space-y-6">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Work Experience
-                    </h3>
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900">
+                        Education
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Degrees, diplomas, Class XII and Class X qualifications.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
+                      onClick={() => {
+                        const newEdu = {
+                          id: Math.random().toString(36).substr(2, 9),
+                          school: "",
+                          degree: "",
+                          fieldOfStudy: "",
+                          startDate: "",
+                          endDate: "",
+                          score: "",
+                        };
+                        setResumeData((prev) => ({
+                          ...prev,
+                          education: [...(prev.education || []), newEdu],
+                        }));
+                      }}
+                    >
+                      <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" />{" "}
+                      Add Education
+                    </Button>
+                  </div>
+
+                  {normalizedData.education.map((edu, index) => (
+                    <div
+                      key={edu.id}
+                      className="p-5 pt-6 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4 relative group shadow-xs mt-4"
+                    >
+                      <div className="absolute -top-3.5 right-3 sm:right-4 z-10">
+                        <FloatingReorderCard
+                          index={index}
+                          total={normalizedData.education.length}
+                          onMoveUp={() => moveItem("education", index, "up")}
+                          onMoveDown={() => moveItem("education", index, "down")}
+                          onDelete={() => {
+                            setResumeData((prev) => ({
+                              ...prev,
+                              education: prev.education.filter((e) => e.id !== edu.id),
+                            }));
+                          }}
+                          emoji="🎓"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="sm:col-span-2">
+                          <FormField
+                            label="Degree / Examination Name"
+                            value={edu.degree}
+                            onChange={(e) => {
+                              const newEdu = [...normalizedData.education];
+                              newEdu[index].degree = e.target.value;
+                              setResumeData({ ...normalizedData, education: newEdu });
+                            }}
+                            placeholder="e.g. Master of Business Administration (Marketing & Finance)"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <FormField
+                            label="School / College / University"
+                            value={edu.school}
+                            onChange={(e) => {
+                              const newEdu = [...normalizedData.education];
+                              newEdu[index].school = e.target.value;
+                              setResumeData({ ...normalizedData, education: newEdu });
+                            }}
+                            placeholder="e.g. Greater Noida Institute of Technology"
+                          />
+                        </div>
+                        <FormField
+                          label="Start Year"
+                          value={edu.startDate}
+                          onChange={(e) => {
+                            const newEdu = [...normalizedData.education];
+                            newEdu[index].startDate = e.target.value;
+                            setResumeData({ ...normalizedData, education: newEdu });
+                          }}
+                          placeholder="e.g. 2021"
+                          isOptional
+                        />
+                        <FormField
+                          label="End Year (or Expected)"
+                          value={edu.endDate}
+                          onChange={(e) => {
+                            const newEdu = [...normalizedData.education];
+                            newEdu[index].endDate = e.target.value;
+                            setResumeData({ ...normalizedData, education: newEdu });
+                          }}
+                          placeholder="e.g. Expected 2027 or 2024"
+                        />
+                        <div className="sm:col-span-2">
+                          <FormField
+                            label="Percentage / CGPA"
+                            value={edu.score || ""}
+                            onChange={(e) => {
+                              const newEdu = [...normalizedData.education];
+                              newEdu[index].score = e.target.value;
+                              setResumeData({ ...normalizedData, education: newEdu });
+                            }}
+                            placeholder="e.g. 8.5 CGPA or 85%"
+                            isOptional
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </TabsContent>
+
+                {/* SKILLS TAB */}
+                <TabsContent value="skills" className="space-y-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900">
+                        Skills
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Group skills by category to get the clean corporate two-column format.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
+                      onClick={() => {
+                        const newSkill = {
+                          id: Math.random().toString(36).substr(2, 9),
+                          category: "Core Competencies",
+                          name: "",
+                          level: "Expert",
+                        };
+                        setResumeData((prev) => ({
+                          ...prev,
+                          skills: [...(prev.skills || []), newSkill],
+                        }));
+                      }}
+                    >
+                      <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" />{" "}
+                      Add Skill Group
+                    </Button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {normalizedData.skills.map((skill, index) => (
+                      <div
+                        key={skill.id}
+                        className="p-4 pt-5 bg-slate-50 border border-slate-200 rounded-xl space-y-3 relative group shadow-xs mt-4"
+                      >
+                        <div className="absolute -top-3.5 right-3 sm:right-4 z-10">
+                          <FloatingReorderCard
+                            index={index}
+                            total={normalizedData.skills.length}
+                            onMoveUp={() => moveItem("skills", index, "up")}
+                            onMoveDown={() => moveItem("skills", index, "down")}
+                            onDelete={() => {
+                              setResumeData((prev) => ({
+                                ...prev,
+                                skills: prev.skills.filter((s) => s.id !== skill.id),
+                              }));
+                            }}
+                            emoji="⚡"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="text-xs font-semibold text-slate-700 block mb-1">
+                              Category / Title:
+                            </label>
+                            <input
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+                              placeholder="e.g. Technical & Tools"
+                              value={skill.category || ""}
+                              onChange={(e) => {
+                                const newSkills = [...normalizedData.skills];
+                                newSkills[index].category = e.target.value;
+                                setResumeData({ ...normalizedData, skills: newSkills });
+                              }}
+                            />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="text-xs font-semibold text-slate-700 block mb-1">
+                              Skills (comma-separated):
+                            </label>
+                            <input
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary"
+                              placeholder="e.g. Advanced MS Excel, ADCA, MS Office Suite"
+                              value={skill.name}
+                              onChange={(e) => {
+                                const newSkills = [...normalizedData.skills];
+                                newSkills[index].name = e.target.value;
+                                setResumeData({ ...normalizedData, skills: newSkills });
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <span className="text-xs font-semibold text-slate-600">Quick Add Category:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        "Sales & Acquisition",
+                        "Market Research",
+                        "Digital & AI",
+                        "Technical & Tools",
+                        "Core Competencies",
+                        "Languages Known",
+                      ].map((catName) => (
+                        <Button
+                          key={catName}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-6 px-2 bg-white"
+                          onClick={() => {
+                            const newSkill = {
+                              id: Math.random().toString(36).substr(2, 9),
+                              category: catName,
+                              name: "",
+                              level: "Expert",
+                            };
+                            setResumeData((prev) => ({
+                              ...prev,
+                              skills: [...(prev.skills || []), newSkill],
+                            }));
+                          }}
+                        >
+                          + {catName}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* EXPERIENCE TAB */}
+                <TabsContent value="experience" className="space-y-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900">
+                        Internship / Work Experience
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Separate achievements into separate lines; they will render as professional bullet points.
+                      </p>
+                    </div>
                     <Button
                       size="sm"
                       variant="outline"
@@ -327,7 +875,7 @@ export default function BuilderPage() {
                         };
                         setResumeData((prev) => ({
                           ...prev,
-                          experience: [...prev.experience, newExp],
+                          experience: [...(prev.experience || []), newExp],
                         }));
                       }}
                     >
@@ -335,274 +883,107 @@ export default function BuilderPage() {
                       Add Experience
                     </Button>
                   </div>
-                  <p className="text-xs text-slate-500 italic">
-                    Optional. Add only if relevant to your career stage.
-                  </p>
-                </div>
 
-                {resumeData.experience.map((exp, index) => (
-                  <div
-                    key={exp.id}
-                    className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4 relative group shadow-sm"
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-3 right-3 text-slate-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all rounded-full"
-                      onClick={() => {
-                        setResumeData((prev) => ({
-                          ...prev,
-                          experience: prev.experience.filter(
-                            (e) => e.id !== exp.id,
-                          ),
-                        }));
-                      }}
+                  {normalizedData.experience.map((exp, index) => (
+                    <div
+                      key={exp.id}
+                      className="p-5 pt-6 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4 relative group shadow-xs mt-4"
                     >
-                      ×
-                    </Button>
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        label="Company"
-                        value={exp.company}
-                        onChange={(e) => {
-                          const newExp = [...resumeData.experience];
-                          newExp[index].company = e.target.value;
-                          setResumeData({ ...resumeData, experience: newExp });
-                        }}
-                      />
-                      <FormField
-                        label="Position"
-                        value={exp.position}
-                        onChange={(e) => {
-                          const newExp = [...resumeData.experience];
-                          newExp[index].position = e.target.value;
-                          setResumeData({ ...resumeData, experience: newExp });
-                        }}
-                      />
-                      <FormField
-                        label="Start Date"
-                        value={exp.startDate}
-                        onChange={(e) => {
-                          const newExp = [...resumeData.experience];
-                          newExp[index].startDate = e.target.value;
-                          setResumeData({ ...resumeData, experience: newExp });
-                        }}
-                      />
-                      {!exp.current && (
+                      <div className="absolute -top-3.5 right-3 sm:right-4 z-10">
+                        <FloatingReorderCard
+                          index={index}
+                          total={normalizedData.experience.length}
+                          onMoveUp={() => moveItem("experience", index, "up")}
+                          onMoveDown={() => moveItem("experience", index, "down")}
+                          onDelete={() => {
+                            setResumeData((prev) => ({
+                              ...prev,
+                              experience: prev.experience.filter((e) => e.id !== exp.id),
+                            }));
+                          }}
+                          emoji="💼"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FormField
+                          label="Company / Organization"
+                          value={exp.company}
+                          onChange={(e) => {
+                            const newExp = [...normalizedData.experience];
+                            newExp[index].company = e.target.value;
+                            setResumeData({ ...normalizedData, experience: newExp });
+                          }}
+                          placeholder="e.g. Impactra Consulting"
+                        />
+                        <FormField
+                          label="Location"
+                          value={exp.location}
+                          onChange={(e) => {
+                            const newExp = [...normalizedData.experience];
+                            newExp[index].location = e.target.value;
+                            setResumeData({ ...normalizedData, experience: newExp });
+                          }}
+                          placeholder="e.g. Noida, India"
+                          isOptional
+                        />
+                        <div className="sm:col-span-2">
+                          <FormField
+                            label="Role / Position"
+                            value={exp.position}
+                            onChange={(e) => {
+                              const newExp = [...normalizedData.experience];
+                              newExp[index].position = e.target.value;
+                              setResumeData({ ...normalizedData, experience: newExp });
+                            }}
+                            placeholder="e.g. Management Intern – Sales & Market Research"
+                          />
+                        </div>
+                        <FormField
+                          label="Start Date"
+                          value={exp.startDate}
+                          onChange={(e) => {
+                            const newExp = [...normalizedData.experience];
+                            newExp[index].startDate = e.target.value;
+                            setResumeData({ ...normalizedData, experience: newExp });
+                          }}
+                          placeholder="e.g. May 2026"
+                        />
                         <FormField
                           label="End Date"
                           value={exp.endDate}
                           onChange={(e) => {
-                            const newExp = [...resumeData.experience];
+                            const newExp = [...normalizedData.experience];
                             newExp[index].endDate = e.target.value;
-                            setResumeData({
-                              ...resumeData,
-                              experience: newExp,
-                            });
+                            setResumeData({ ...normalizedData, experience: newExp });
                           }}
-                        />
-                      )}
-                    </div>
-                    <textarea
-                      className="w-full bg-white border border-slate-200 rounded-xl p-3 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 min-h-[100px] shadow-sm"
-                      placeholder="Key achievements and responsibilities..."
-                      value={exp.description}
-                      onChange={(e) => {
-                        const newExp = [...resumeData.experience];
-                        newExp[index].description = e.target.value;
-                        setResumeData({ ...resumeData, experience: newExp });
-                      }}
-                    />
-                  </div>
-                ))}
-              </TabsContent>
-
-              <TabsContent value="education" className="space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-slate-900">
-                    Education
-                  </h3>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
-                    onClick={() => {
-                      const newEdu = {
-                        id: Math.random().toString(36).substr(2, 9),
-                        school: "",
-                        degree: "",
-                        fieldOfStudy: "",
-                        startDate: "",
-                        endDate: "",
-                        score: "",
-                      };
-                      setResumeData((prev) => ({
-                        ...prev,
-                        education: [...prev.education, newEdu],
-                      }));
-                    }}
-                  >
-                    <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" />{" "}
-                    Add Education
-                  </Button>
-                </div>
-
-                {resumeData.education.map((edu, index) => (
-                  <div
-                    key={edu.id}
-                    className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4 relative group shadow-sm"
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-3 right-3 text-slate-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all rounded-full"
-                      onClick={() => {
-                        setResumeData((prev) => ({
-                          ...prev,
-                          education: prev.education.filter(
-                            (e) => e.id !== edu.id,
-                          ),
-                        }));
-                      }}
-                    >
-                      ×
-                    </Button>
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        label="School / University"
-                        value={edu.school}
-                        onChange={(e) => {
-                          const newEdu = [...resumeData.education];
-                          newEdu[index].school = e.target.value;
-                          setResumeData({ ...resumeData, education: newEdu });
-                        }}
-                      />
-                      <FormField
-                        label="Degree"
-                        value={edu.degree}
-                        onChange={(e) => {
-                          const newEdu = [...resumeData.education];
-                          newEdu[index].degree = e.target.value;
-                          setResumeData({ ...resumeData, education: newEdu });
-                        }}
-                        placeholder="e.g. Bachelor of Science"
-                      />
-                      <FormField
-                        label="Field of Study"
-                        value={edu.fieldOfStudy}
-                        onChange={(e) => {
-                          const newEdu = [...resumeData.education];
-                          newEdu[index].fieldOfStudy = e.target.value;
-                          setResumeData({ ...resumeData, education: newEdu });
-                        }}
-                        placeholder="e.g. Computer Science"
-                      />
-                      <FormField
-                        label="Start Year"
-                        value={edu.startDate}
-                        onChange={(e) => {
-                          const newEdu = [...resumeData.education];
-                          newEdu[index].startDate = e.target.value;
-                          setResumeData({ ...resumeData, education: newEdu });
-                        }}
-                        placeholder="e.g. 2018"
-                      />
-                      <FormField
-                        label="End Year (or Expected)"
-                        value={edu.endDate}
-                        onChange={(e) => {
-                          const newEdu = [...resumeData.education];
-                          newEdu[index].endDate = e.target.value;
-                          setResumeData({ ...resumeData, education: newEdu });
-                        }}
-                        placeholder="e.g. 2022"
-                      />
-                      <div className="col-span-2">
-                        <FormField
-                          label="Percentage / CGPA"
-                          value={edu.score || ""}
-                          onChange={(e) => {
-                            const newEdu = [...resumeData.education];
-                            newEdu[index].score = e.target.value;
-                            setResumeData({ ...resumeData, education: newEdu });
-                          }}
-                          placeholder="e.g. 8.5 CGPA or 85%"
-                          isOptional={true}
+                          placeholder="e.g. July 2026 or Present"
                         />
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </TabsContent>
-
-              <TabsContent value="skills" className="space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-slate-900">
-                    Skills
-                  </h3>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
-                    onClick={() => {
-                      const newSkill = {
-                        id: Math.random().toString(36).substr(2, 9),
-                        name: "",
-                        level: "Intermediate",
-                      };
-                      setResumeData((prev) => ({
-                        ...prev,
-                        skills: [...prev.skills, newSkill],
-                      }));
-                    }}
-                  >
-                    <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" />{" "}
-                    Add Skill
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                  {resumeData.skills.map((skill, index) => (
-                    <div
-                      key={skill.id}
-                      className="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-2 gap-2 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all"
-                    >
-                      <input
-                        className="bg-transparent border-none focus:outline-none text-sm flex-1 text-slate-900 font-medium px-2"
-                        placeholder="e.g. React"
-                        value={skill.name}
-                        onChange={(e) => {
-                          const newSkills = [...resumeData.skills];
-                          newSkills[index].name = e.target.value;
-                          setResumeData({ ...resumeData, skills: newSkills });
+                      <BulletPointsEditor
+                        value={exp.description}
+                        onChange={(val) => {
+                          const newExp = [...normalizedData.experience];
+                          newExp[index].description = val;
+                          setResumeData({ ...normalizedData, experience: newExp });
                         }}
+                        label="Responsibilities & Key Achievements"
+                        placeholder="e.g. Conducted client outreach and structured primary research surveys..."
                       />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
-                        onClick={() => {
-                          setResumeData((prev) => ({
-                            ...prev,
-                            skills: prev.skills.filter(
-                              (s) => s.id !== skill.id,
-                            ),
-                          }));
-                        }}
-                      >
-                        ×
-                      </Button>
                     </div>
                   ))}
-                </div>
-              </TabsContent>
+                </TabsContent>
 
-              <TabsContent value="projects" className="space-y-6 pb-20">
-                <div>
+                {/* PROJECTS TAB */}
+                <TabsContent value="projects" className="space-y-6">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Projects
-                    </h3>
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900">
+                        Research & Academic Projects
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Add project title, client/institution, and bulleted results.
+                      </p>
+                    </div>
                     <Button
                       size="sm"
                       variant="outline"
@@ -611,12 +992,13 @@ export default function BuilderPage() {
                         const newProject = {
                           id: Math.random().toString(36).substr(2, 9),
                           name: "",
+                          organization: "",
                           description: "",
                           technologies: [],
                         };
                         setResumeData((prev) => ({
                           ...prev,
-                          projects: [...prev.projects, newProject],
+                          projects: [...(prev.projects || []), newProject],
                         }));
                       }}
                     >
@@ -624,269 +1006,877 @@ export default function BuilderPage() {
                       Add Project
                     </Button>
                   </div>
-                  <p className="text-xs text-slate-500 italic">
-                    Optional. Add only if relevant to your career stage.
-                  </p>
-                </div>
 
-                {resumeData.projects.map((project, index) => (
-                  <div
-                    key={project.id}
-                    className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4 relative group shadow-sm"
-                  >
+                  {normalizedData.projects.map((project, index) => (
+                    <div
+                      key={project.id}
+                      className="p-5 pt-6 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4 relative group shadow-xs mt-4"
+                    >
+                      <div className="absolute -top-3.5 right-3 sm:right-4 z-10">
+                        <FloatingReorderCard
+                          index={index}
+                          total={normalizedData.projects.length}
+                          onMoveUp={() => moveItem("projects", index, "up")}
+                          onMoveDown={() => moveItem("projects", index, "down")}
+                          onDelete={() => {
+                            setResumeData((prev) => ({
+                              ...prev,
+                              projects: prev.projects.filter((p) => p.id !== project.id),
+                            }));
+                          }}
+                          emoji="🚀"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FormField
+                          label="Project Title"
+                          value={project.name}
+                          onChange={(e) => {
+                            const newProjects = [...normalizedData.projects];
+                            newProjects[index].name = e.target.value;
+                            setResumeData({ ...normalizedData, projects: newProjects });
+                          }}
+                          placeholder="e.g. Social Media Marketing in the BFSI Sector"
+                        />
+                        <FormField
+                          label="Institution / Partner / Link"
+                          value={project.organization || ""}
+                          onChange={(e) => {
+                            const newProjects = [...normalizedData.projects];
+                            newProjects[index].organization = e.target.value;
+                            setResumeData({ ...normalizedData, projects: newProjects });
+                          }}
+                          placeholder="e.g. GNIOT & Impactra Consulting"
+                          isOptional
+                        />
+                      </div>
+                      <BulletPointsEditor
+                        value={project.description}
+                        onChange={(val) => {
+                          const newProjects = [...normalizedData.projects];
+                          newProjects[index].description = val;
+                          setResumeData({ ...normalizedData, projects: newProjects });
+                        }}
+                        label="Project Highlights & Key Findings"
+                        placeholder="e.g. Conducted comprehensive primary research with 103 respondents..."
+                      />
+                    </div>
+                  ))}
+                </TabsContent>
+
+                {/* CERTIFICATIONS TAB */}
+                <TabsContent value="certifications" className="space-y-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900 flex items-center gap-1.5">
+                        <Award className="w-4 h-4 text-primary" /> Certifications & Courses
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Professional certificates, workshops, and certified programs.
+                      </p>
+                    </div>
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-3 right-3 text-slate-400 hover:text-red-500 hover:bg-red-50 opacity-100 group-hover:opacity-100 transition-all rounded-full"
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
                       onClick={() => {
+                        const newCert = {
+                          id: Math.random().toString(36).substr(2, 9),
+                          name: "",
+                          issuer: "",
+                          date: "",
+                        };
                         setResumeData((prev) => ({
                           ...prev,
-                          projects: prev.projects.filter(
-                            (p) => p.id !== project.id,
-                          ),
+                          certifications: [...(prev.certifications || []), newCert],
                         }));
                       }}
                     >
-                      ×
+                      <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" />{" "}
+                      Add Certification
                     </Button>
-                    <FormField
-                      label="Project Name"
-                      value={project.name}
-                      onChange={(e) => {
-                        const newProjects = [...resumeData.projects];
-                        newProjects[index].name = e.target.value;
-                        setResumeData({ ...resumeData, projects: newProjects });
-                      }}
-                    />
-                    <textarea
-                      className="w-full bg-white border border-slate-200 rounded-xl p-3 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 min-h-[80px] shadow-sm"
-                      placeholder="Project description and link..."
-                      value={project.description}
-                      onChange={(e) => {
-                        const newProjects = [...resumeData.projects];
-                        newProjects[index].description = e.target.value;
-                        setResumeData({ ...resumeData, projects: newProjects });
-                      }}
-                    />
                   </div>
-                ))}
-              </TabsContent>
-            </Tabs>
-          </div>
-        </aside>
 
-        {/* Right Side: Instant Preview */}
-        <section className="hidden lg:block flex-1 bg-slate-200/50 overflow-y-auto p-12 scrollbar-none">
-          <div className="max-w-[1024px] mx-auto space-y-6">
-            <div className="flex items-center justify-between bg-white/50 backdrop-blur-sm p-3 rounded-2xl border border-white shadow-sm ring-1 ring-slate-200/50">
-              <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl flex-wrap">
+                  <div className="flex items-center gap-2 p-2.5 bg-blue-50/80 border border-blue-200/60 rounded-xl text-xs text-blue-800">
+                    <span className="text-sm">💡</span>
+                    <span>
+                      Use the floating <b>🔼 Up</b> and <b>🔽 Down</b> buttons on any card to change its order on your resume.
+                    </span>
+                  </div>
+
+                  <div className="space-y-4">
+                    {normalizedData.certifications.map((cert, index) => (
+                      <div
+                        key={cert.id}
+                        className="p-4 pt-5 rounded-xl border border-slate-200 bg-slate-50/60 relative group shadow-xs space-y-3 mt-4"
+                      >
+                        <div className="absolute -top-3.5 right-3 sm:right-4 z-10">
+                          <FloatingReorderCard
+                            index={index}
+                            total={normalizedData.certifications.length}
+                            onMoveUp={() => moveItem("certifications", index, "up")}
+                            onMoveDown={() => moveItem("certifications", index, "down")}
+                            onDelete={() => {
+                              setResumeData((prev) => ({
+                                ...prev,
+                                certifications: prev.certifications.filter((c) => c.id !== cert.id),
+                              }));
+                            }}
+                            emoji="🏆"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="sm:col-span-2">
+                            <label className="text-xs font-semibold text-slate-700 block mb-1">
+                              Certification Name / Title:
+                            </label>
+                            <input
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary"
+                              placeholder="e.g. AI for Managers – Professional Certification Course"
+                              value={cert.name}
+                              onChange={(e) => {
+                                const newCerts = [...normalizedData.certifications];
+                                newCerts[index].name = e.target.value;
+                                setResumeData({ ...normalizedData, certifications: newCerts });
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-slate-700 block mb-1">
+                              Issuing Institute / Org (Optional):
+                            </label>
+                            <input
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary"
+                              placeholder="e.g. IIM Rohtak"
+                              value={cert.issuer || ""}
+                              onChange={(e) => {
+                                const newCerts = [...normalizedData.certifications];
+                                newCerts[index].issuer = e.target.value;
+                                setResumeData({ ...normalizedData, certifications: newCerts });
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {normalizedData.certifications.length === 0 && (
+                    <div className="p-8 border border-dashed border-slate-200 rounded-2xl text-center text-slate-400 space-y-2">
+                      <Award className="w-8 h-8 mx-auto stroke-1" />
+                      <p className="text-sm">No certifications added yet.</p>
+                      <p className="text-xs">Click "Add Certification" or "Load Example" above to get started.</p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* ADDITIONAL INFO TAB */}
+                <TabsContent value="additional" className="space-y-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900 flex items-center gap-1.5">
+                        <Info className="w-4 h-4 text-primary" /> Additional Information
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Languages known, declaration statements, co-curricular achievements.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg group"
+                      onClick={() => {
+                        const newInfo = {
+                          id: Math.random().toString(36).substr(2, 9),
+                          label: "Languages Known",
+                          value: "",
+                        };
+                        setResumeData((prev) => ({
+                          ...prev,
+                          additionalInfo: [...(prev.additionalInfo || []), newInfo],
+                        }));
+                      }}
+                    >
+                      <Plus className="w-3 h-3 mr-1 group-hover:rotate-90 transition-transform" />{" "}
+                      Add Item
+                    </Button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {normalizedData.additionalInfo.map((info, index) => (
+                      <div
+                        key={info.id}
+                        className="p-4 pt-5 rounded-xl border border-slate-200 bg-slate-50/60 relative group shadow-xs space-y-3 mt-4"
+                      >
+                        <div className="absolute -top-3.5 right-3 sm:right-4 z-10">
+                          <FloatingReorderCard
+                            index={index}
+                            total={normalizedData.additionalInfo.length}
+                            onMoveUp={() => moveItem("additionalInfo", index, "up")}
+                            onMoveDown={() => moveItem("additionalInfo", index, "down")}
+                            onDelete={() => {
+                              setResumeData((prev) => ({
+                                ...prev,
+                                additionalInfo: prev.additionalInfo.filter((i) => i.id !== info.id),
+                              }));
+                            }}
+                            emoji="📌"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="text-xs font-semibold text-slate-700 block mb-1">
+                              Title / Label:
+                            </label>
+                            <input
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+                              placeholder="e.g. Languages Known"
+                              value={info.label || ""}
+                              onChange={(e) => {
+                                const newInfoList = [...normalizedData.additionalInfo];
+                                newInfoList[index].label = e.target.value;
+                                setResumeData({ ...normalizedData, additionalInfo: newInfoList });
+                              }}
+                            />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="text-xs font-semibold text-slate-700 block mb-1">
+                              Details / Value:
+                            </label>
+                            <input
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary"
+                              placeholder="e.g. English (Professional Working Proficiency), Hindi (Native / Fluent)"
+                              value={info.value}
+                              onChange={(e) => {
+                                const newInfoList = [...normalizedData.additionalInfo];
+                                newInfoList[index].value = e.target.value;
+                                setResumeData({ ...normalizedData, additionalInfo: newInfoList });
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <span className="text-xs font-semibold text-slate-600">Quick Add:</span>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7 bg-white"
+                        onClick={() => {
+                          const newInfo = {
+                            id: Math.random().toString(36).substr(2, 9),
+                            label: "Languages Known",
+                            value: "English (Professional Working Proficiency), Hindi (Native / Fluent)",
+                          };
+                          setResumeData((prev) => ({
+                            ...prev,
+                            additionalInfo: [...(prev.additionalInfo || []), newInfo],
+                          }));
+                        }}
+                      >
+                        + Languages Known
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7 bg-white"
+                        onClick={() => {
+                          const newInfo = {
+                            id: Math.random().toString(36).substr(2, 9),
+                            label: "Declaration",
+                            value: "I hereby declare that all the information stated above is complete, authentic, and true to the best of my knowledge.",
+                          };
+                          setResumeData((prev) => ({
+                            ...prev,
+                            additionalInfo: [...(prev.additionalInfo || []), newInfo],
+                          }));
+                        }}
+                      >
+                        + Declaration
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* SECTION ORDER & TITLES TAB */}
+                <TabsContent value="titles" className="space-y-6">
+                  {/* Section Order Reordering Manager */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-base font-semibold text-slate-900 flex items-center gap-1.5">
+                          <SlidersHorizontal className="w-4 h-4 text-primary" /> Section Layout & Order
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          Reorder resume sections using 🔼 Up and 🔽 Down buttons. Changes reflect instantly on your resume.
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs text-slate-600 hover:text-slate-900 bg-white"
+                        onClick={resetSectionOrder}
+                      >
+                        <RotateCcw className="w-3 h-3 mr-1" /> Reset Order
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2 bg-slate-50 p-3 sm:p-4 rounded-2xl border border-slate-200">
+                      {normalizedData.sectionOrder.map((sectionKey, idx) => {
+                        const sectionMeta = {
+                          objective: {
+                            name: "Career Objective",
+                            emoji: "🎯",
+                            desc: "Career statement or summary",
+                            count: normalizedData.personalInfo.objective || normalizedData.personalInfo.summary ? "Configured" : "Empty",
+                          },
+                          education: {
+                            name: "Education",
+                            emoji: "🎓",
+                            desc: "Degrees, colleges, and scores",
+                            count: `${normalizedData.education.length} item${normalizedData.education.length === 1 ? "" : "s"}`,
+                          },
+                          skills: {
+                            name: "Skills",
+                            emoji: "⚡",
+                            desc: "Categorized competencies and tools",
+                            count: `${normalizedData.skills.length} group${normalizedData.skills.length === 1 ? "" : "s"}`,
+                          },
+                          experience: {
+                            name: "Internship / Work Experience",
+                            emoji: "💼",
+                            desc: "Roles, employers, dates, and bullet points",
+                            count: `${normalizedData.experience.length} position${normalizedData.experience.length === 1 ? "" : "s"}`,
+                          },
+                          projects: {
+                            name: "Research & Academic Projects",
+                            emoji: "🚀",
+                            desc: "Key projects, client studies, and results",
+                            count: `${normalizedData.projects.length} project${normalizedData.projects.length === 1 ? "" : "s"}`,
+                          },
+                          certifications: {
+                            name: "Certifications & Courses",
+                            emoji: "🏆",
+                            desc: "Professional certificates and credentials",
+                            count: `${normalizedData.certifications.length} item${normalizedData.certifications.length === 1 ? "" : "s"}`,
+                          },
+                          additionalInfo: {
+                            name: "Additional Information",
+                            emoji: "📌",
+                            desc: "Languages, declarations, and co-curriculars",
+                            count: `${normalizedData.additionalInfo.length} item${normalizedData.additionalInfo.length === 1 ? "" : "s"}`,
+                          },
+                        };
+
+                        const meta = sectionMeta[sectionKey] || {
+                          name: sectionKey,
+                          emoji: "📄",
+                          desc: "",
+                          count: "",
+                        };
+
+                        const isFirst = idx === 0;
+                        const isLast = idx === normalizedData.sectionOrder.length - 1;
+                        const customHeading = normalizedData.sectionTitles?.[sectionKey];
+
+                        return (
+                          <div
+                            key={sectionKey}
+                            className="flex items-center justify-between p-2.5 sm:p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-slate-300 hover:shadow-xs transition-all gap-2"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-sm font-semibold select-none shrink-0 border border-slate-200/50">
+                                {meta.emoji}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs sm:text-sm font-bold text-slate-800 truncate">
+                                    {meta.name}
+                                  </span>
+                                  {customHeading && (
+                                    <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-mono truncate max-w-[140px] sm:max-w-[200px]">
+                                      "{customHeading}"
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-400 truncate">
+                                  {meta.desc} • <span className="text-slate-600 font-medium">{meta.count}</span>
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full mr-1">
+                                #{idx + 1}
+                              </span>
+                              {/* Move Up 🔼 */}
+                              <button
+                                type="button"
+                                disabled={isFirst}
+                                onClick={() => moveSection(idx, "up")}
+                                title={isFirst ? "Already at top" : "Move Section Up 🔼"}
+                                className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs transition-all ${
+                                  isFirst
+                                    ? "opacity-25 cursor-not-allowed filter grayscale"
+                                    : "hover:bg-slate-100 hover:scale-115 active:scale-75 cursor-pointer text-slate-700 border border-slate-200"
+                                }`}
+                              >
+                                🔼
+                              </button>
+                              {/* Move Down 🔽 */}
+                              <button
+                                type="button"
+                                disabled={isLast}
+                                onClick={() => moveSection(idx, "down")}
+                                title={isLast ? "Already at bottom" : "Move Section Down 🔽"}
+                                className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs transition-all ${
+                                  isLast
+                                    ? "opacity-25 cursor-not-allowed filter grayscale"
+                                    : "hover:bg-slate-100 hover:scale-115 active:scale-75 cursor-pointer text-slate-700 border border-slate-200"
+                                }`}
+                              >
+                                🔽
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Section Titles Customization */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-900">
+                          Customize Header Titles
+                        </h4>
+                        <p className="text-xs text-slate-500">
+                          Edit the text printed on each section header of your resume.
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs text-slate-500 hover:text-slate-900"
+                        onClick={() => {
+                          setResumeData((prev) => ({
+                            ...prev,
+                            sectionTitles: {
+                              objective: "CAREER OBJECTIVE",
+                              education: "EDUCATION",
+                              skills: "SKILLS",
+                              experience: "INTERNSHIP EXPERIENCE",
+                              projects: "RESEARCH PROJECTS",
+                              certifications: "CERTIFICATIONS",
+                              additionalInfo: "ADDITIONAL INFORMATION",
+                            },
+                          }));
+                        }}
+                      >
+                        <RotateCcw className="w-3 h-3 mr-1" /> Reset Titles
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                      <FormField
+                        label="Career Objective Title"
+                        value={normalizedData.sectionTitles?.objective || "CAREER OBJECTIVE"}
+                        onChange={(e) => handleUpdateField("sectionTitles", "objective", e.target.value)}
+                        placeholder="e.g. CAREER OBJECTIVE"
+                      />
+                      <FormField
+                        label="Education Title"
+                        value={normalizedData.sectionTitles?.education || "EDUCATION"}
+                        onChange={(e) => handleUpdateField("sectionTitles", "education", e.target.value)}
+                        placeholder="e.g. EDUCATION"
+                      />
+                      <FormField
+                        label="Skills Title"
+                        value={normalizedData.sectionTitles?.skills || "SKILLS"}
+                        onChange={(e) => handleUpdateField("sectionTitles", "skills", e.target.value)}
+                        placeholder="e.g. SKILLS"
+                      />
+                      <FormField
+                        label="Experience Title"
+                        value={normalizedData.sectionTitles?.experience || "INTERNSHIP EXPERIENCE"}
+                        onChange={(e) => handleUpdateField("sectionTitles", "experience", e.target.value)}
+                        placeholder="e.g. INTERNSHIP EXPERIENCE or WORK EXPERIENCE"
+                      />
+                      <FormField
+                        label="Projects Title"
+                        value={normalizedData.sectionTitles?.projects || "RESEARCH PROJECTS"}
+                        onChange={(e) => handleUpdateField("sectionTitles", "projects", e.target.value)}
+                        placeholder="e.g. RESEARCH PROJECTS or KEY PROJECTS"
+                      />
+                      <FormField
+                        label="Certifications Title"
+                        value={normalizedData.sectionTitles?.certifications || "CERTIFICATIONS"}
+                        onChange={(e) => handleUpdateField("sectionTitles", "certifications", e.target.value)}
+                        placeholder="e.g. CERTIFICATIONS"
+                      />
+                      <div className="sm:col-span-2">
+                        <FormField
+                          label="Additional Information Title"
+                          value={normalizedData.sectionTitles?.additionalInfo || "ADDITIONAL INFORMATION"}
+                          onChange={(e) => handleUpdateField("sectionTitles", "additionalInfo", e.target.value)}
+                          placeholder="e.g. ADDITIONAL INFORMATION"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </aside>
+
+          {/* Right Side: Instant Preview */}
+          <section className="hidden lg:block flex-1 bg-slate-200/50 overflow-y-auto p-8 scrollbar-none">
+            <div className="max-w-[1024px] mx-auto space-y-4">
+              <div className="flex items-center justify-between bg-white/70 backdrop-blur-md p-3 rounded-2xl border border-white shadow-sm ring-1 ring-slate-200/50">
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl flex-wrap">
+                  {templateBtn("corporate", "Corporate")}
+                  {templateBtn("classic", "Classic")}
+                  {templateBtn("modern", "Modern")}
+                  {templateBtn("modernminimal", "Minimal")}
+                  {templateBtn("ats", "ATS")}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={exportAsJSON}
+                    className="bg-white border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold"
+                    title="Export and download your complete resume data as a JSON file"
+                  >
+                    <FileJson className="w-3.5 h-3.5 mr-1.5 text-emerald-600" /> Export JSON
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="bg-white border-slate-200 text-slate-700"
+                  >
+                    <Settings className="w-3.5 h-3.5 mr-1.5" /> Options
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 shadow-md shadow-slate-900/10"
+                    onClick={() => handlePrint()}
+                  >
+                    <Download className="w-4 h-4 mr-1.5" /> Download PDF
+                  </Button>
+                </div>
+              </div>
+
+              {/* Resume Preview Paper */}
+              <div className="flex justify-center pb-12">
+                <div
+                  className="bg-white text-black shadow-2xl min-h-[297mm] print-area rounded-sm overflow-hidden transform transition-all duration-300 shadow-slate-300/50"
+                  style={{
+                    width: "210mm",
+                    transform: `scale(${previewScale})`,
+                    transformOrigin: "top center",
+                  }}
+                >
+                  <ActiveTemplate data={normalizedData} />
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        {/* Mobile Preview Toggle */}
+        <div className="lg:hidden fixed bottom-6 right-6 z-50 no-print">
+          <Button
+            size="icon"
+            className="w-14 h-14 rounded-full shadow-2xl bg-slate-900 text-white hover:bg-slate-800 transition-all scale-110 active:scale-95"
+            onClick={() => setIsPreviewOpen(true)}
+          >
+            <Eye className="w-6 h-6" />
+          </Button>
+        </div>
+
+        {/* Mobile Preview Overlay */}
+        {isPreviewOpen && (
+          <div className="fixed inset-0 z-[100] bg-black p-2 sm:p-4 flex flex-col lg:hidden no-print">
+            <div className="flex flex-col gap-3 mb-4 px-2">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-white">Preview</h2>
+
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  >
+                    <Settings className="w-4 h-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Settings</span>
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePrint()}
+                    className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  >
+                    <Download className="w-4 h-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Download</span>
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => setIsPreviewOpen(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+
+              {/* TEMPLATE SWITCHER */}
+              <div className="flex gap-1.5 overflow-x-auto p-1 bg-white/10 rounded-xl">
+                {templateBtn("corporate", "Corporate")}
                 {templateBtn("classic", "Classic")}
                 {templateBtn("modern", "Modern")}
                 {templateBtn("modernminimal", "Minimal")}
                 {templateBtn("ats", "ATS")}
               </div>
-              <Button
-                size="sm"
-                className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 shadow-lg shadow-slate-900/10"
-                onClick={() => handlePrint()}
-              >
-                <Download className="w-4 h-4 mr-2" /> Download PDF
-              </Button>
             </div>
 
-            {/* Resume Preview Paper */}
-            <div className="flex justify-center">
+            <div className="flex-1 bg-white rounded-xl overflow-auto w-full flex justify-center py-4 px-2">
               <div
-                className="bg-white text-black shadow-2xl min-h-[297mm] print-area rounded-sm overflow-hidden transform transition-all duration-300 shadow-slate-300/50"
+                className="relative shadow-2xl"
                 style={{
-                  width: "210mm",
-                  transform: `scale(${previewScale})`,
-                  transformOrigin: "top center",
+                  width: `${794 * previewScale}px`,
+                  height: `${1122 * previewScale}px`,
+                  overflow: 'hidden'
                 }}
               >
-                <ActiveTemplate data={resumeData} />
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* Mobile Preview Toggle */}
-      <div className="lg:hidden fixed bottom-6 right-6 z-50 no-print">
-        <Button
-          size="icon"
-          className="w-14 h-14 rounded-full shadow-2xl bg-slate-900 text-white hover:bg-slate-800 transition-all scale-110 active:scale-95"
-          onClick={() => setIsPreviewOpen(true)}
-        >
-          <Eye className="w-6 h-6" />
-        </Button>
-      </div>
-
-      {/* Mobile Preview Overlay */}
-      {isPreviewOpen && (
-        <div className="fixed inset-0 z-[100] bg-black p-2 sm:p-4 flex flex-col lg:hidden no-print">
-          <div className="flex flex-col gap-3 mb-4 px-2">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold">Preview</h2>
-
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setIsSettingsOpen(true)}
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                <div
+                  className="print-area bg-white rounded-sm origin-top-left"
+                  style={{
+                    width: "794px",
+                    height: "1122px",
+                    transform: `scale(${previewScale})`,
+                  }}
                 >
-                  <Settings className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Settings</span>
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handlePrint()}
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                >
-                  <Download className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Download</span>
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setIsPreviewOpen(false)}
-                >
-                  Close
-                </Button>
-              </div>
-            </div>
-
-            {/* TEMPLATE SWITCHER */}
-            <div className="flex gap-2 overflow-x-auto">
-              {templateBtn("classic", "Classic")}
-              {templateBtn("modern", "Modern")}
-              {templateBtn("modernminimal", "Minimal")}
-              {templateBtn("ats", "ATS")}
-            </div>
-          </div>
-
-          <div className="flex-1 bg-white rounded-xl overflow-auto w-full flex justify-center py-4 px-2">
-            <div 
-              className="relative shadow-2xl"
-              style={{
-                width: `${794 * previewScale}px`,
-                height: `${1122 * previewScale}px`,
-                overflow: 'hidden'
-              }}
-            >
-              <div
-                className="print-area bg-white rounded-sm origin-top-left"
-                style={{
-                  width: "794px",
-                  height: "1122px",
-                  transform: `scale(${previewScale})`,
-                }}
-              >
-                <ActiveTemplate data={resumeData} />
-              </div>
-            </div>
-          </div>
-          <div className="mt-4 p-4 bg-slate-100 border border-slate-200 rounded-xl text-center text-xs text-slate-500">
-            Swipe to explore or use Desktop for best experience.
-          </div>
-        </div>
-      )}
-
-      {/* Settings Dialog */}
-      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Resume Settings</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-6 py-4">
-            {/* File Name */}
-            <div className="space-y-3">
-              <Label>File Name (for download)</Label>
-              <Input
-                value={resumeData.settings?.fileName || ""}
-                onChange={(e) =>
-                  handleUpdateField("settings", "fileName", e.target.value)
-                }
-                placeholder="e.g. My_New_Resume"
-                className="rounded-xl border-slate-200 focus:ring-primary/20"
-              />
-              <p className="text-[10px] text-slate-400">Your PDF will be saved with this name (no extension needed).</p>
-            </div>
-
-            {/* Theme Color */}
-            <div className="space-y-3">
-              <Label>Theme Color</Label>
-              <div className="flex flex-wrap gap-2">
-                {colorPresets.map((color) => (
-                  <button
-                    key={color.value}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${
-                      resumeData.settings?.primaryColor === color.value
-                        ? "border-slate-900 scale-110 shadow-sm"
-                        : "border-transparent"
-                    }`}
-                    style={{ backgroundColor: color.value }}
-                    onClick={() =>
-                      handleUpdateField("settings", "primaryColor", color.value)
-                    }
-                    title={color.name}
-                  />
-                ))}
-                <div className="relative w-8 h-8 rounded-full border-2 border-slate-200 overflow-hidden ring-offset-2 focus-within:ring-2 focus-within:ring-slate-400">
-                  <input
-                    type="color"
-                    className="absolute inset-0 w-full h-full cursor-pointer scale-150 outline-none border-none p-0"
-                    value={resumeData.settings?.primaryColor || "#0f172a"}
-                    onChange={(e) =>
-                      handleUpdateField("settings", "primaryColor", e.target.value)
-                    }
-                  />
+                  <ActiveTemplate data={normalizedData} />
                 </div>
               </div>
             </div>
-
-            {/* Font Size */}
-            <div className="space-y-3">
-              <Label>Font Size</Label>
-              <Select
-                value={resumeData.settings?.fontSize || "medium"}
-                onValueChange={(value) =>
-                  handleUpdateField("settings", "fontSize", value)
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select font size" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="small">Small</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="large">Large</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="mt-4 p-4 bg-slate-900 border border-slate-800 rounded-xl text-center text-xs text-slate-400">
+              Desktop view recommended for live side-by-side editing.
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={() => setIsSettingsOpen(false)} className="w-full sm:w-auto">
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
 
-    </div>
+        {/* Settings Dialog */}
+        <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Resume Settings</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-6 py-4">
+              {/* File Name */}
+              <div className="space-y-3">
+                <Label>File Name (for PDF download)</Label>
+                <Input
+                  value={normalizedData.settings?.fileName || ""}
+                  onChange={(e) =>
+                    handleUpdateField("settings", "fileName", e.target.value)
+                  }
+                  placeholder="e.g. Rudransh_Srivastav_Resume"
+                  className="rounded-xl border-slate-200 focus:ring-primary/20"
+                />
+                <p className="text-[10px] text-slate-400">Your PDF will be exported with this name.</p>
+              </div>
 
-      {/* Printer: Isolated sibling to ensure it prints even when UI is hidden */}
-      <div 
-        className="fixed top-0 left-0 -z-9999 pointer-events-none print-only" 
+              {/* Theme Color */}
+              <div className="space-y-3">
+                <Label>Primary Heading Color</Label>
+                <div className="flex flex-wrap gap-2">
+                  {colorPresets.map((color) => (
+                    <button
+                      key={color.value}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${normalizedData.settings?.primaryColor === color.value
+                          ? "border-slate-900 scale-110 shadow-sm"
+                          : "border-transparent"
+                        }`}
+                      style={{ backgroundColor: color.value }}
+                      onClick={() =>
+                        handleUpdateField("settings", "primaryColor", color.value)
+                      }
+                      title={color.name}
+                    />
+                  ))}
+                  <div className="relative w-8 h-8 rounded-full border-2 border-slate-200 overflow-hidden ring-offset-2 focus-within:ring-2 focus-within:ring-slate-400">
+                    <input
+                      type="color"
+                      className="absolute inset-0 w-full h-full cursor-pointer scale-150 outline-none border-none p-0"
+                      value={normalizedData.settings?.primaryColor || "#000000"}
+                      onChange={(e) =>
+                        handleUpdateField("settings", "primaryColor", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Font Size */}
+              <div className="space-y-3">
+                <Label>Font Size</Label>
+                <Select
+                  value={normalizedData.settings?.fontSize || "medium"}
+                  onValueChange={(value) =>
+                    handleUpdateField("settings", "fontSize", value)
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select font size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="small">Small (Fit more content)</SelectItem>
+                    <SelectItem value="medium">Medium (Standard)</SelectItem>
+                    <SelectItem value="large">Large (High legibility)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setIsSettingsOpen(false)} className="w-full sm:w-auto">
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* JSON Backup & Auto-fill Dialog */}
+        <Dialog open={isJsonModalOpen} onOpenChange={setIsJsonModalOpen}>
+          <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-lg">
+                <FileJson className="w-5 h-5 text-emerald-600" />
+                <span>Save & Restore Resume Data (JSON)</span>
+              </DialogTitle>
+              <p className="text-xs text-slate-500">
+                Safely backup your filled resume, download a backup JSON file, or paste JSON to auto-fill every field instantly.
+              </p>
+            </DialogHeader>
+
+            <div className="space-y-5 py-3">
+              {/* Section 1: Quick Export / Backup */}
+              <div className="p-4 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl space-y-3">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900">
+                    Export Current Work
+                  </h4>
+                  <p className="text-[11px] text-emerald-700">
+                    Download your entire resume as a JSON file or copy to clipboard.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={exportAsJSON}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
+                  >
+                    <Download className="w-3.5 h-3.5 mr-1.5" /> Download JSON File
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={copyJSONToClipboard}
+                    className="bg-white border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                  >
+                    {copiedSuccess ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-600" /> Copied to Clipboard!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 mr-1.5" /> Copy JSON
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Section 2: Import / Paste JSON */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Paste JSON to Auto-fill All Fields
+                  </Label>
+                  <label className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer underline flex items-center gap-1">
+                    <Upload className="w-3 h-3" />
+                    <span>Upload .json file</span>
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <textarea
+                  className="w-full h-44 bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y"
+                  placeholder='Paste JSON here, e.g.:&#10;{&#10;  "personalInfo": { "fullName": "..." },&#10;  "education": [...],&#10;  "skills": [...]&#10;}'
+                  value={jsonInput}
+                  onChange={(e) => {
+                    setJsonInput(e.target.value);
+                    if (jsonError) setJsonError("");
+                  }}
+                />
+
+                {jsonError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">
+                    ⚠️ {jsonError}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsJsonModalOpen(false)}
+                className="text-xs text-slate-500 w-full sm:w-auto"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => handleImportJSON()}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold w-full sm:w-auto shadow-sm"
+              >
+                <Upload className="w-4 h-4 mr-1.5" />
+                <span>Auto-fill All Fields</span>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Printer: Isolated sibling to ensure it prints properly */}
+      <div
+        className="fixed top-0 left-0 -z-9999 pointer-events-none print-only"
         aria-hidden="true"
         style={{ width: "210mm", minHeight: "297mm", overflow: "visible", background: "white" }}
       >
         <div ref={componentRef} className="print-area bg-white text-black p-0 m-0">
-          {mounted && resumeData && <ActiveTemplate data={resumeData} />}
+          {mounted && <ActiveTemplate data={normalizedData} />}
         </div>
       </div>
     </>
@@ -902,9 +1892,9 @@ function FormField({
   isOptional = false,
 }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex justify-between items-center">
-        <label className="text-sm font-medium text-slate-600">{label}</label>
+        <label className="text-xs font-semibold text-slate-700">{label}</label>
         {isOptional && (
           <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
             Optional
@@ -913,10 +1903,10 @@ function FormField({
       </div>
       <input
         type={type}
-        value={value}
+        value={value || ""}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 shadow-sm text-base sm:text-sm"
+        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 shadow-xs text-sm"
       />
     </div>
   );
