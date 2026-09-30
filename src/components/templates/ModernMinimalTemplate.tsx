@@ -6,7 +6,16 @@ interface ModernMinimalTemplateProps {
 }
 
 const ModernMinimalTemplateComponent = ({ data }: ModernMinimalTemplateProps) => {
-  const { personalInfo, experience, education, skills, projects, settings } = data;
+  const {
+    personalInfo = { fullName: "", email: "", phone: "", location: "", title: "", summary: "", objective: "" },
+    experience = [],
+    education = [],
+    skills = [],
+    projects = [],
+    certifications = [],
+    additionalInfo = [],
+    settings,
+  } = data || {};
   const primaryColor = settings?.primaryColor || "#1f2937";
 
   const fontSizeMap = {
@@ -15,6 +24,7 @@ const ModernMinimalTemplateComponent = ({ data }: ModernMinimalTemplateProps) =>
     large: "text-base",
   };
   const baseFontSize = fontSizeMap[settings?.fontSize || "medium"];
+  const summaryText = personalInfo.summary || personalInfo.objective;
 
   return (
     <div className={`min-h-[297mm] mx-auto bg-white p-10 text-gray-800 font-sans ${baseFontSize}`}>
@@ -30,11 +40,13 @@ const ModernMinimalTemplateComponent = ({ data }: ModernMinimalTemplateProps) =>
         </div>
       </header>
 
-      {/* Summary */}
-      {personalInfo.summary && (
+      {/* Summary / Objective */}
+      {summaryText && (
         <section className="mb-6">
-          <h2 className="text-lg font-semibold border-b pb-1 mb-2" style={{ borderColor: `${primaryColor}40` }}>Summary</h2>
-          <p className="text-sm text-gray-700">{personalInfo.summary}</p>
+          <h2 className="text-lg font-semibold border-b pb-1 mb-2" style={{ borderColor: `${primaryColor}40` }}>
+            {personalInfo.objective ? "Career Objective" : "Summary"}
+          </h2>
+          <p className="text-sm text-gray-700">{summaryText}</p>
         </section>
       )}
 
@@ -102,7 +114,7 @@ const ModernMinimalTemplateComponent = ({ data }: ModernMinimalTemplateProps) =>
 
       {/* Skills */}
       {skills.length > 0 && (
-        <section>
+        <section className="mb-6">
           <h2 className="text-lg font-semibold border-b pb-1 mb-3" style={{ borderColor: `${primaryColor}40` }}>Skills</h2>
 
           <div className="flex flex-wrap gap-2">
@@ -111,14 +123,44 @@ const ModernMinimalTemplateComponent = ({ data }: ModernMinimalTemplateProps) =>
                 key={skill.id}
                 className="text-sm bg-gray-100 px-3 py-1 rounded"
               >
-                {skill.name}
+                {skill.category ? `${skill.category}: ` : ""}{skill.name}
               </span>
             ))}
           </div>
         </section>
       )}
-    </div>
 
+      {/* Certifications */}
+      {certifications.length > 0 && (
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold border-b pb-1 mb-3" style={{ borderColor: `${primaryColor}40` }}>Certifications</h2>
+          <ul className="list-disc ml-5 space-y-1 text-sm text-gray-700">
+            {certifications.map((cert) => (
+              <li key={cert.id}>
+                <b>{cert.name}</b>
+                {cert.issuer && ` - ${cert.issuer}`}
+                {cert.date && ` (${cert.date})`}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Additional Information */}
+      {additionalInfo.length > 0 && (
+        <section>
+          <h2 className="text-lg font-semibold border-b pb-1 mb-3" style={{ borderColor: `${primaryColor}40` }}>Additional Information</h2>
+          <ul className="list-disc ml-5 space-y-1 text-sm text-gray-700">
+            {additionalInfo.map((info) => (
+              <li key={info.id}>
+                {info.label ? <b>{info.label}: </b> : null}
+                {info.value}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
   );
 };
 

@@ -6,7 +6,16 @@ interface ClassicTemplateProps {
 }
 
 const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
-  const { personalInfo, experience, education, skills, projects, settings } = data;
+  const {
+    personalInfo = { fullName: "", email: "", phone: "", location: "", title: "", summary: "", objective: "" },
+    experience = [],
+    education = [],
+    skills = [],
+    projects = [],
+    certifications = [],
+    additionalInfo = [],
+    settings,
+  } = data || {};
   const primaryColor = settings?.primaryColor || "#000000";
 
   const fontSizeMap = {
@@ -16,6 +25,7 @@ const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
   };
 
   const baseFontSize = fontSizeMap[settings?.fontSize || "medium"];
+  const summaryText = personalInfo.summary || personalInfo.objective;
 
   return (
     <div className={`p-12 min-h-[297mm] font-serif text-gray-800 leading-relaxed bg-white ${baseFontSize}`}>
@@ -46,14 +56,14 @@ const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
         )}
       </header>
 
-      {/* Summary */}
-      {personalInfo.summary && (
+      {/* Summary / Objective */}
+      {summaryText && (
         <section className="mb-8">
           <h3 className="text-lg font-bold uppercase border-b mb-3 tracking-tight" style={{ color: primaryColor, borderBottomColor: `${primaryColor}40` }}>
-            Professional Summary
+            {personalInfo.objective ? "Career Objective" : "Professional Summary"}
           </h3>
           <p className="text-sm text-gray-700 leading-relaxed text-justify">
-            {personalInfo.summary}
+            {summaryText}
           </p>
         </section>
       )}
@@ -120,8 +130,13 @@ const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
           <div className="space-y-4">
             {projects.map((project) => (
               <div key={project.id}>
-                <h4 className="font-bold text-sm text-black mb-1">{project.name}</h4>
-                <p className="text-sm text-gray-600 leading-snug">
+                <div className="flex justify-between items-baseline mb-1">
+                  <h4 className="font-bold text-sm text-black">{project.name}</h4>
+                  {project.organization && (
+                    <span className="text-xs text-gray-500 italic">{project.organization}</span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600 leading-snug whitespace-pre-line">
                   {project.description}
                 </p>
               </div>
@@ -139,11 +154,56 @@ const ClassicTemplateComponent = ({ data }: ClassicTemplateProps) => {
           <div className="flex flex-wrap gap-x-6 gap-y-2">
             {skills.map((skill) => (
               <div key={skill.id} className="flex items-center gap-2">
-                <span className="text-sm font-bold text-gray-800 tracking-tight">• {skill.name}</span>
-                <span className="text-[10px] text-gray-400 font-sans uppercase">({skill.level})</span>
+                <span className="text-sm font-bold text-gray-800 tracking-tight">
+                  • {skill.category ? `${skill.category}: ` : ""}{skill.name}
+                </span>
+                {skill.level && (
+                  <span className="text-[10px] text-gray-400 font-sans uppercase">({skill.level})</span>
+                )}
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* Certifications */}
+      {certifications.length > 0 && (
+        <section className="mb-8">
+          <h3 className="text-lg font-bold uppercase border-b mb-3 tracking-tight" style={{ color: primaryColor, borderBottomColor: `${primaryColor}40` }}>
+            Certifications
+          </h3>
+          <ul className="list-disc ml-5 space-y-1.5 text-sm text-gray-700">
+            {certifications.map((cert) => (
+              <li key={cert.id}>
+                <span className="font-semibold text-black">{cert.name}</span>
+                {cert.issuer && <span> – {cert.issuer}</span>}
+                {cert.date && <span className="text-gray-500 italic"> ({cert.date})</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Additional Information */}
+      {additionalInfo.length > 0 && (
+        <section className="mb-8">
+          <h3 className="text-lg font-bold uppercase border-b mb-3 tracking-tight" style={{ color: primaryColor, borderBottomColor: `${primaryColor}40` }}>
+            Additional Information
+          </h3>
+          <ul className="list-disc ml-5 space-y-1.5 text-sm text-gray-700">
+            {additionalInfo.map((info) => (
+              <li key={info.id}>
+                {info.label ? (
+                  <>
+                    <span className="font-semibold text-black">{info.label}:</span>{" "}
+                    <span>{info.value}</span>
+                  </>
+                ) : (
+                  <span>{info.value}</span>
+                )}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
     </div>

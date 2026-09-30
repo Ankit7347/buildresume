@@ -6,7 +6,16 @@ interface ModernTemplateProps {
 }
 
 const ModernTemplateComponent = ({ data }: ModernTemplateProps) => {
-  const { personalInfo, experience, education, skills, projects, settings } = data;
+  const {
+    personalInfo = { fullName: "", email: "", phone: "", location: "", title: "", summary: "", objective: "" },
+    experience = [],
+    education = [],
+    skills = [],
+    projects = [],
+    certifications = [],
+    additionalInfo = [],
+    settings,
+  } = data || {};
   const primaryColor = settings?.primaryColor || "#0f172a";
 
   const fontSizeMap = {
@@ -15,6 +24,7 @@ const ModernTemplateComponent = ({ data }: ModernTemplateProps) => {
     large: "text-base",
   };
   const baseFontSize = fontSizeMap[settings?.fontSize || "medium"];
+  const summaryText = personalInfo.summary || personalInfo.objective;
 
   return (
     <div className={`flex h-full min-h-[297mm] bg-white text-slate-800 font-sans ${baseFontSize}`}>
@@ -119,15 +129,15 @@ const ModernTemplateComponent = ({ data }: ModernTemplateProps) => {
       {/* Main Content */}
       <main className="flex-1 p-12 space-y-10">
 
-        {/* Profile */}
-        {personalInfo.summary && (
+        {/* Profile / Objective */}
+        {summaryText && (
           <section className="space-y-3">
             <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 pb-2">
-              Profile
+              {personalInfo.objective ? "Career Objective" : "Profile"}
             </h2>
 
             <p className="text-sm leading-relaxed text-slate-600 italic">
-              {personalInfo.summary}
+              {summaryText}
             </p>
           </section>
         )}
@@ -156,10 +166,10 @@ const ModernTemplateComponent = ({ data }: ModernTemplateProps) => {
                   </div>
 
                   <p className="text-xs font-bold" style={{ color: primaryColor }}>
-                    {exp.company}
+                    {exp.company} {exp.location && `• ${exp.location}`}
                   </p>
 
-                  <p className="text-xs text-slate-500 leading-relaxed">
+                  <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-line">
                     {exp.description}
                   </p>
                 </div>
@@ -181,13 +191,59 @@ const ModernTemplateComponent = ({ data }: ModernTemplateProps) => {
                   key={project.id}
                   className="p-4 bg-slate-50 rounded-xl space-y-2"
                 >
-                  <h4 className="text-sm font-bold text-slate-900">
-                    {project.name}
-                  </h4>
+                  <div className="flex justify-between items-baseline">
+                    <h4 className="text-sm font-bold text-slate-900">
+                      {project.name}
+                    </h4>
+                    {project.organization && (
+                      <span className="text-[11px] text-slate-400">{project.organization}</span>
+                    )}
+                  </div>
 
-                  <p className="text-xs text-slate-500 leading-relaxed">
+                  <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-line">
                     {project.description}
                   </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Certifications */}
+        {certifications.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 pb-2">
+              Certifications
+            </h2>
+            <div className="space-y-2">
+              {certifications.map((cert) => (
+                <div key={cert.id} className="text-xs text-slate-700">
+                  <span className="font-bold text-slate-900">• {cert.name}</span>
+                  {cert.issuer && <span> – {cert.issuer}</span>}
+                  {cert.date && <span className="text-slate-400"> ({cert.date})</span>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Additional Information */}
+        {additionalInfo.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 pb-2">
+              Additional Information
+            </h2>
+            <div className="space-y-2">
+              {additionalInfo.map((info) => (
+                <div key={info.id} className="text-xs text-slate-700">
+                  {info.label ? (
+                    <>
+                      <span className="font-bold text-slate-900">• {info.label}: </span>
+                      <span>{info.value}</span>
+                    </>
+                  ) : (
+                    <span>• {info.value}</span>
+                  )}
                 </div>
               ))}
             </div>

@@ -6,7 +6,16 @@ interface ATSResumeTemplateProps {
 }
 
 const ATSResumeTemplateComponent = ({ data }: ATSResumeTemplateProps) => {
-  const { personalInfo, experience, education, skills, projects, settings } = data;
+  const {
+    personalInfo = { fullName: "", email: "", phone: "", location: "", title: "", summary: "", objective: "" },
+    experience = [],
+    education = [],
+    skills = [],
+    projects = [],
+    certifications = [],
+    additionalInfo = [],
+    settings,
+  } = data || {};
   const primaryColor = settings?.primaryColor || "#000000";
 
   const fontSizeMap = {
@@ -15,6 +24,7 @@ const ATSResumeTemplateComponent = ({ data }: ATSResumeTemplateProps) => {
     large: "text-base",
   };
   const baseFontSize = fontSizeMap[settings?.fontSize || "medium"];
+  const summaryText = personalInfo.summary || personalInfo.objective;
 
   return (
     <div className={`min-h-[297mm] mx-auto bg-white p-10 text-black font-sans ${baseFontSize}`}>
@@ -22,14 +32,16 @@ const ATSResumeTemplateComponent = ({ data }: ATSResumeTemplateProps) => {
         <h1 className="text-2xl font-bold" style={{ color: primaryColor }}>{personalInfo.fullName}</h1>
 
         <p className="text-sm">
-          {personalInfo.email} | {personalInfo.phone} | {personalInfo.location}
+          {[personalInfo.email, personalInfo.phone, personalInfo.location].filter(Boolean).join(" | ")}
         </p>
       </header>
 
-      {personalInfo.summary && (
+      {summaryText && (
         <section className="mb-4">
-          <h2 className="font-bold border-b mb-1">Summary</h2>
-          <p className="text-sm">{personalInfo.summary}</p>
+          <h2 className="font-bold border-b mb-1">
+            {personalInfo.objective ? "Career Objective" : "Summary"}
+          </h2>
+          <p className="text-sm">{summaryText}</p>
         </section>
       )}
 
@@ -43,6 +55,7 @@ const ATSResumeTemplateComponent = ({ data }: ATSResumeTemplateProps) => {
 
               <div className="text-xs text-gray-500">
                 {exp.startDate} - {exp.current ? "Present" : exp.endDate}
+                {exp.location && ` • ${exp.location}`}
               </div>
 
               <p className="text-sm whitespace-pre-line">
@@ -58,9 +71,10 @@ const ATSResumeTemplateComponent = ({ data }: ATSResumeTemplateProps) => {
           <h2 className="font-bold border-b mb-2">Projects</h2>
 
           {projects.map((project) => (
-            <div key={project.id}>
+            <div key={project.id} className="mb-2">
               <b>{project.name}</b>
-              <p className="text-sm">{project.description}</p>
+              {project.organization && <span className="text-xs text-gray-600"> ({project.organization})</span>}
+              <p className="text-sm whitespace-pre-line">{project.description}</p>
             </div>
           ))}
         </section>
@@ -71,8 +85,8 @@ const ATSResumeTemplateComponent = ({ data }: ATSResumeTemplateProps) => {
           <h2 className="font-bold border-b mb-2">Education</h2>
 
           {education.map((edu) => (
-            <div key={edu.id} className="text-sm">
-              {edu.degree}{edu.fieldOfStudy && ` in ${edu.fieldOfStudy}`} — {edu.school} ({edu.startDate} - {edu.endDate})
+            <div key={edu.id} className="text-sm mb-1">
+              {edu.degree}{edu.fieldOfStudy && ` in ${edu.fieldOfStudy}`} — {edu.school} ({edu.startDate ? `${edu.startDate} - ` : ""}{edu.endDate})
               {edu.score && <span className="ml-2 font-semibold">• {edu.score}</span>}
             </div>
           ))}
@@ -80,12 +94,41 @@ const ATSResumeTemplateComponent = ({ data }: ATSResumeTemplateProps) => {
       )}
 
       {skills.length > 0 && (
-        <section>
+        <section className="mb-4">
           <h2 className="font-bold border-b mb-2">Skills</h2>
 
           <p className="text-sm">
-            {skills.map((skill) => skill.name).join(", ")}
+            {skills.map((skill) => (skill.category ? `${skill.category}: ${skill.name}` : skill.name)).join(" | ")}
           </p>
+        </section>
+      )}
+
+      {certifications.length > 0 && (
+        <section className="mb-4">
+          <h2 className="font-bold border-b mb-2">Certifications</h2>
+          <ul className="list-disc ml-5 text-sm space-y-1">
+            {certifications.map((cert) => (
+              <li key={cert.id}>
+                <b>{cert.name}</b>
+                {cert.issuer && ` - ${cert.issuer}`}
+                {cert.date && ` (${cert.date})`}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {additionalInfo.length > 0 && (
+        <section>
+          <h2 className="font-bold border-b mb-2">Additional Information</h2>
+          <ul className="list-disc ml-5 text-sm space-y-1">
+            {additionalInfo.map((info) => (
+              <li key={info.id}>
+                {info.label ? <b>{info.label}: </b> : null}
+                {info.value}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
     </div>
