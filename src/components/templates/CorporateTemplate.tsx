@@ -121,33 +121,34 @@ const CorporateTemplateComponent = ({ data }: CorporateTemplateProps) => {
             {sectionTitles?.skills || "SKILLS"}
           </h2>
         </div>
-        <div className="space-y-1 text-[12.5px] leading-snug">
+        <div className="text-[12.5px] leading-snug">
           {Object.keys(groupedSkills.map).length > 0 ? (
-            <>
-              {Object.entries(groupedSkills.map).map(([category, items]) => (
-                <div
-                  key={category}
-                  className="grid grid-cols-[160px_1fr] sm:grid-cols-[175px_1fr] gap-2 text-[12.5px]"
-                >
-                  <span className="font-normal text-black whitespace-nowrap">
-                    {category}:
-                  </span>
-                  <span className="text-gray-900">{items.join(", ")}</span>
-                </div>
-              ))}
-              {groupedSkills.uncategorized.length > 0 && (
-                <div className="grid grid-cols-[160px_1fr] sm:grid-cols-[175px_1fr] gap-2 text-[12.5px]">
-                  <span className="font-normal text-black whitespace-nowrap">
-                    Other Skills:
-                  </span>
-                  <span className="text-gray-900">
-                    {groupedSkills.uncategorized.join(", ")}
-                  </span>
-                </div>
-              )}
-            </>
+            <table className="w-full border-collapse">
+              <tbody>
+                {Object.entries(groupedSkills.map).map(([category, items]) => (
+                  <tr key={category} className="align-top">
+                    <td className="whitespace-nowrap font-normal text-black pr-2.5 py-0.5 w-[1%]">
+                      {category}:
+                    </td>
+                    <td className="text-gray-900 py-0.5 leading-snug">
+                      {items.join(", ")}
+                    </td>
+                  </tr>
+                ))}
+                {groupedSkills.uncategorized.length > 0 && (
+                  <tr className="align-top">
+                    <td className="whitespace-nowrap font-normal text-black pr-2.5 py-0.5 w-[1%]">
+                      Other Skills:
+                    </td>
+                    <td className="text-gray-900 py-0.5 leading-snug">
+                      {groupedSkills.uncategorized.join(", ")}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           ) : (
-            <p className="text-gray-900">
+            <p className="text-gray-900 py-0.5">
               {skills.map((s) => s.name).join(", ")}
             </p>
           )}
