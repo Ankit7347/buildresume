@@ -38,6 +38,16 @@ export interface SectionTitles {
   additionalInfo?: string;
 }
 
+export const defaultSectionOrder: string[] = [
+  "objective",
+  "education",
+  "skills",
+  "experience",
+  "projects",
+  "certifications",
+  "additionalInfo",
+];
+
 export interface ResumeData {
   personalInfo: {
     fullName: string;
@@ -50,6 +60,7 @@ export interface ResumeData {
     profileImage?: string;
   };
   sectionTitles?: SectionTitles;
+  sectionOrder?: string[];
   experience: {
     id: string;
     company: string;
@@ -105,6 +116,7 @@ export const initialResumeData: ResumeData = {
     certifications: "CERTIFICATIONS",
     additionalInfo: "ADDITIONAL INFORMATION",
   },
+  sectionOrder: defaultSectionOrder,
   experience: [],
   education: [],
   skills: [],
@@ -138,6 +150,7 @@ export const corporateSampleData: ResumeData = {
     certifications: "CERTIFICATIONS",
     additionalInfo: "ADDITIONAL INFORMATION",
   },
+  sectionOrder: defaultSectionOrder,
   education: [
     {
       id: "edu-1",

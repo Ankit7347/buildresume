@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useLocalStorageTTL } from "@/lib/hooks/use-local-storage-ttl";
-import { initialResumeData, corporateSampleData } from "@/lib/types";
+import { initialResumeData, corporateSampleData, defaultSectionOrder } from "@/lib/types";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { useReactToPrint } from "react-to-print";
@@ -45,6 +45,9 @@ import { ClassicTemplate } from "@/components/templates/ClassicTemplate";
 import { ModernTemplate } from "@/components/templates/ModernTemplate";
 import { ModernMinimalTemplate } from "@/components/templates/ModernMinimalTemplate";
 import { ATSResumeTemplate } from "@/components/templates/ATSResumeTemplate";
+import { FloatingReorderCard } from "@/components/ui/FloatingReorderCard";
+import { BulletPointsEditor } from "@/components/ui/BulletPointsEditor";
+import { reorderList } from "@/lib/utils";
 
 export default function BuilderPage() {
   const [resumeData, setResumeData] = useLocalStorageTTL(
@@ -128,6 +131,7 @@ export default function BuilderPage() {
       languages: data.languages || [],
       certifications: data.certifications || [],
       additionalInfo: data.additionalInfo || [],
+      sectionOrder: data.sectionOrder || defaultSectionOrder,
       settings: {
         primaryColor: "#000000",
         fontSize: "medium",
@@ -149,6 +153,35 @@ export default function BuilderPage() {
         ...(prev?.[section] || {}),
         [field]: value,
       },
+    }));
+  };
+
+  const moveItem = (section, index, direction) => {
+    setResumeData((prev) => {
+      const currentList = prev?.[section] || [];
+      const updatedList = reorderList(currentList, index, direction);
+      return {
+        ...prev,
+        [section]: updatedList,
+      };
+    });
+  };
+
+  const moveSection = (index, direction) => {
+    setResumeData((prev) => {
+      const currentOrder = prev?.sectionOrder || defaultSectionOrder;
+      const updatedOrder = reorderList(currentOrder, index, direction);
+      return {
+        ...prev,
+        sectionOrder: updatedOrder,
+      };
+    });
+  };
+
+  const resetSectionOrder = () => {
+    setResumeData((prev) => ({
+      ...prev,
+      sectionOrder: [...defaultSectionOrder],
     }));
   };
 
@@ -307,9 +340,9 @@ export default function BuilderPage() {
                   </TabsTrigger>
                   <TabsTrigger
                     value="titles"
-                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs sm:text-sm font-medium text-slate-600"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs sm:text-sm font-medium text-slate-700"
                   >
-                    Section Titles
+                    Section Order & Titles
                   </TabsTrigger>
                 </TabsList>
 
@@ -506,21 +539,23 @@ export default function BuilderPage() {
                   {normalizedData.education.map((edu, index) => (
                     <div
                       key={edu.id}
-                      className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4 relative group shadow-sm"
+                      className="p-5 pt-6 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4 relative group shadow-xs mt-4"
                     >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-3 right-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full"
-                        onClick={() => {
-                          setResumeData((prev) => ({
-                            ...prev,
-                            education: prev.education.filter((e) => e.id !== edu.id),
-                          }));
-                        }}
-                      >
-                        ×
-                      </Button>
+                      <div className="absolute -top-3.5 right-3 sm:right-4 z-10">
+                        <FloatingReorderCard
+                          index={index}
+                          total={normalizedData.education.length}
+                          onMoveUp={() => moveItem("education", index, "up")}
+                          onMoveDown={() => moveItem("education", index, "down")}
+                          onDelete={() => {
+                            setResumeData((prev) => ({
+                              ...prev,
+                              education: prev.education.filter((e) => e.id !== edu.id),
+                            }));
+                          }}
+                          emoji="🎓"
+                        />
+                      </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="sm:col-span-2">
                           <FormField
@@ -618,25 +653,27 @@ export default function BuilderPage() {
                     </Button>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {normalizedData.skills.map((skill, index) => (
                       <div
                         key={skill.id}
-                        className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 relative group shadow-xs"
+                        className="p-4 pt-5 bg-slate-50 border border-slate-200 rounded-xl space-y-3 relative group shadow-xs mt-4"
                       >
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-2 right-2 h-7 w-7 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
-                          onClick={() => {
-                            setResumeData((prev) => ({
-                              ...prev,
-                              skills: prev.skills.filter((s) => s.id !== skill.id),
-                            }));
-                          }}
-                        >
-                          ×
-                        </Button>
+                        <div className="absolute -top-3.5 right-3 sm:right-4 z-10">
+                          <FloatingReorderCard
+                            index={index}
+                            total={normalizedData.skills.length}
+                            onMoveUp={() => moveItem("skills", index, "up")}
+                            onMoveDown={() => moveItem("skills", index, "down")}
+                            onDelete={() => {
+                              setResumeData((prev) => ({
+                                ...prev,
+                                skills: prev.skills.filter((s) => s.id !== skill.id),
+                              }));
+                            }}
+                            emoji="⚡"
+                          />
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
                             <label className="text-xs font-semibold text-slate-700 block mb-1">
@@ -750,21 +787,23 @@ export default function BuilderPage() {
                   {normalizedData.experience.map((exp, index) => (
                     <div
                       key={exp.id}
-                      className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4 relative group shadow-sm"
+                      className="p-5 pt-6 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4 relative group shadow-xs mt-4"
                     >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-3 right-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full"
-                        onClick={() => {
-                          setResumeData((prev) => ({
-                            ...prev,
-                            experience: prev.experience.filter((e) => e.id !== exp.id),
-                          }));
-                        }}
-                      >
-                        ×
-                      </Button>
+                      <div className="absolute -top-3.5 right-3 sm:right-4 z-10">
+                        <FloatingReorderCard
+                          index={index}
+                          total={normalizedData.experience.length}
+                          onMoveUp={() => moveItem("experience", index, "up")}
+                          onMoveDown={() => moveItem("experience", index, "down")}
+                          onDelete={() => {
+                            setResumeData((prev) => ({
+                              ...prev,
+                              experience: prev.experience.filter((e) => e.id !== exp.id),
+                            }));
+                          }}
+                          emoji="💼"
+                        />
+                      </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
                           label="Company / Organization"
@@ -820,21 +859,16 @@ export default function BuilderPage() {
                           placeholder="e.g. July 2026 or Present"
                         />
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-slate-700">
-                          Bullet Points / Responsibilities (one per line):
-                        </label>
-                        <textarea
-                          className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 min-h-[110px] shadow-sm leading-relaxed"
-                          placeholder="• Executed direct customer outreach and pitched tailored insurance financial products...&#10;• Designed and distributed structured primary research questionnaires..."
-                          value={exp.description}
-                          onChange={(e) => {
-                            const newExp = [...normalizedData.experience];
-                            newExp[index].description = e.target.value;
-                            setResumeData({ ...normalizedData, experience: newExp });
-                          }}
-                        />
-                      </div>
+                      <BulletPointsEditor
+                        value={exp.description}
+                        onChange={(val) => {
+                          const newExp = [...normalizedData.experience];
+                          newExp[index].description = val;
+                          setResumeData({ ...normalizedData, experience: newExp });
+                        }}
+                        label="Responsibilities & Key Achievements"
+                        placeholder="e.g. Conducted client outreach and structured primary research surveys..."
+                      />
                     </div>
                   ))}
                 </TabsContent>
@@ -876,21 +910,23 @@ export default function BuilderPage() {
                   {normalizedData.projects.map((project, index) => (
                     <div
                       key={project.id}
-                      className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4 relative group shadow-sm"
+                      className="p-5 pt-6 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4 relative group shadow-xs mt-4"
                     >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-3 right-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full"
-                        onClick={() => {
-                          setResumeData((prev) => ({
-                            ...prev,
-                            projects: prev.projects.filter((p) => p.id !== project.id),
-                          }));
-                        }}
-                      >
-                        ×
-                      </Button>
+                      <div className="absolute -top-3.5 right-3 sm:right-4 z-10">
+                        <FloatingReorderCard
+                          index={index}
+                          total={normalizedData.projects.length}
+                          onMoveUp={() => moveItem("projects", index, "up")}
+                          onMoveDown={() => moveItem("projects", index, "down")}
+                          onDelete={() => {
+                            setResumeData((prev) => ({
+                              ...prev,
+                              projects: prev.projects.filter((p) => p.id !== project.id),
+                            }));
+                          }}
+                          emoji="🚀"
+                        />
+                      </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
                           label="Project Title"
@@ -914,21 +950,16 @@ export default function BuilderPage() {
                           isOptional
                         />
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-slate-700">
-                          Project Description (one bullet point per line):
-                        </label>
-                        <textarea
-                          className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 min-h-[90px] shadow-sm leading-relaxed"
-                          placeholder="• Conducted comprehensive primary research with 103 respondents...&#10;• Identified that 49% of respondents discover financial products via social platforms..."
-                          value={project.description}
-                          onChange={(e) => {
-                            const newProjects = [...normalizedData.projects];
-                            newProjects[index].description = e.target.value;
-                            setResumeData({ ...normalizedData, projects: newProjects });
-                          }}
-                        />
-                      </div>
+                      <BulletPointsEditor
+                        value={project.description}
+                        onChange={(val) => {
+                          const newProjects = [...normalizedData.projects];
+                          newProjects[index].description = val;
+                          setResumeData({ ...normalizedData, projects: newProjects });
+                        }}
+                        label="Project Highlights & Key Findings"
+                        placeholder="e.g. Conducted comprehensive primary research with 103 respondents..."
+                      />
                     </div>
                   ))}
                 </TabsContent>
@@ -966,25 +997,34 @@ export default function BuilderPage() {
                     </Button>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-2.5 bg-blue-50/80 border border-blue-200/60 rounded-xl text-xs text-blue-800">
+                    <span className="text-sm">💡</span>
+                    <span>
+                      Use the floating <b>🔼 Up</b> and <b>🔽 Down</b> buttons on any card to change its order on your resume.
+                    </span>
+                  </div>
+
+                  <div className="space-y-4">
                     {normalizedData.certifications.map((cert, index) => (
                       <div
                         key={cert.id}
-                        className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 relative group shadow-xs space-y-3"
+                        className="p-4 pt-5 rounded-xl border border-slate-200 bg-slate-50/60 relative group shadow-xs space-y-3 mt-4"
                       >
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-2 right-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full h-7 w-7"
-                          onClick={() => {
-                            setResumeData((prev) => ({
-                              ...prev,
-                              certifications: prev.certifications.filter((c) => c.id !== cert.id),
-                            }));
-                          }}
-                        >
-                          ×
-                        </Button>
+                        <div className="absolute -top-3.5 right-3 sm:right-4 z-10">
+                          <FloatingReorderCard
+                            index={index}
+                            total={normalizedData.certifications.length}
+                            onMoveUp={() => moveItem("certifications", index, "up")}
+                            onMoveDown={() => moveItem("certifications", index, "down")}
+                            onDelete={() => {
+                              setResumeData((prev) => ({
+                                ...prev,
+                                certifications: prev.certifications.filter((c) => c.id !== cert.id),
+                              }));
+                            }}
+                            emoji="🏆"
+                          />
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div className="sm:col-span-2">
                             <label className="text-xs font-semibold text-slate-700 block mb-1">
@@ -1062,25 +1102,27 @@ export default function BuilderPage() {
                     </Button>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {normalizedData.additionalInfo.map((info, index) => (
                       <div
                         key={info.id}
-                        className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 relative group shadow-xs space-y-3"
+                        className="p-4 pt-5 rounded-xl border border-slate-200 bg-slate-50/60 relative group shadow-xs space-y-3 mt-4"
                       >
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-2 right-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full h-7 w-7"
-                          onClick={() => {
-                            setResumeData((prev) => ({
-                              ...prev,
-                              additionalInfo: prev.additionalInfo.filter((i) => i.id !== info.id),
-                            }));
-                          }}
-                        >
-                          ×
-                        </Button>
+                        <div className="absolute -top-3.5 right-3 sm:right-4 z-10">
+                          <FloatingReorderCard
+                            index={index}
+                            total={normalizedData.additionalInfo.length}
+                            onMoveUp={() => moveItem("additionalInfo", index, "up")}
+                            onMoveDown={() => moveItem("additionalInfo", index, "down")}
+                            onDelete={() => {
+                              setResumeData((prev) => ({
+                                ...prev,
+                                additionalInfo: prev.additionalInfo.filter((i) => i.id !== info.id),
+                              }));
+                            }}
+                            emoji="📌"
+                          />
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
                             <label className="text-xs font-semibold text-slate-700 block mb-1">
@@ -1162,84 +1204,231 @@ export default function BuilderPage() {
                   </div>
                 </TabsContent>
 
-                {/* SECTION TITLES TAB */}
-                <TabsContent value="titles" className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-semibold text-slate-900 flex items-center gap-1.5">
-                        <SlidersHorizontal className="w-4 h-4 text-primary" /> Section Titles Customization
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        Customize section titles to match your institution or industry standard.
-                      </p>
+                {/* SECTION ORDER & TITLES TAB */}
+                <TabsContent value="titles" className="space-y-6">
+                  {/* Section Order Reordering Manager */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-base font-semibold text-slate-900 flex items-center gap-1.5">
+                          <SlidersHorizontal className="w-4 h-4 text-primary" /> Section Layout & Order
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          Reorder resume sections using 🔼 Up and 🔽 Down buttons. Changes reflect instantly on your resume.
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs text-slate-600 hover:text-slate-900 bg-white"
+                        onClick={resetSectionOrder}
+                      >
+                        <RotateCcw className="w-3 h-3 mr-1" /> Reset Order
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-xs text-slate-500 hover:text-slate-900"
-                      onClick={() => {
-                        setResumeData((prev) => ({
-                          ...prev,
-                          sectionTitles: {
-                            objective: "CAREER OBJECTIVE",
-                            education: "EDUCATION",
-                            skills: "SKILLS",
-                            experience: "INTERNSHIP EXPERIENCE",
-                            projects: "RESEARCH PROJECTS",
-                            certifications: "CERTIFICATIONS",
-                            additionalInfo: "ADDITIONAL INFORMATION",
+
+                    <div className="space-y-2 bg-slate-50 p-3 sm:p-4 rounded-2xl border border-slate-200">
+                      {normalizedData.sectionOrder.map((sectionKey, idx) => {
+                        const sectionMeta = {
+                          objective: {
+                            name: "Career Objective",
+                            emoji: "🎯",
+                            desc: "Career statement or summary",
+                            count: normalizedData.personalInfo.objective || normalizedData.personalInfo.summary ? "Configured" : "Empty",
                           },
-                        }));
-                      }}
-                    >
-                      <RotateCcw className="w-3 h-3 mr-1" /> Reset to Defaults
-                    </Button>
+                          education: {
+                            name: "Education",
+                            emoji: "🎓",
+                            desc: "Degrees, colleges, and scores",
+                            count: `${normalizedData.education.length} item${normalizedData.education.length === 1 ? "" : "s"}`,
+                          },
+                          skills: {
+                            name: "Skills",
+                            emoji: "⚡",
+                            desc: "Categorized competencies and tools",
+                            count: `${normalizedData.skills.length} group${normalizedData.skills.length === 1 ? "" : "s"}`,
+                          },
+                          experience: {
+                            name: "Internship / Work Experience",
+                            emoji: "💼",
+                            desc: "Roles, employers, dates, and bullet points",
+                            count: `${normalizedData.experience.length} position${normalizedData.experience.length === 1 ? "" : "s"}`,
+                          },
+                          projects: {
+                            name: "Research & Academic Projects",
+                            emoji: "🚀",
+                            desc: "Key projects, client studies, and results",
+                            count: `${normalizedData.projects.length} project${normalizedData.projects.length === 1 ? "" : "s"}`,
+                          },
+                          certifications: {
+                            name: "Certifications & Courses",
+                            emoji: "🏆",
+                            desc: "Professional certificates and credentials",
+                            count: `${normalizedData.certifications.length} item${normalizedData.certifications.length === 1 ? "" : "s"}`,
+                          },
+                          additionalInfo: {
+                            name: "Additional Information",
+                            emoji: "📌",
+                            desc: "Languages, declarations, and co-curriculars",
+                            count: `${normalizedData.additionalInfo.length} item${normalizedData.additionalInfo.length === 1 ? "" : "s"}`,
+                          },
+                        };
+
+                        const meta = sectionMeta[sectionKey] || {
+                          name: sectionKey,
+                          emoji: "📄",
+                          desc: "",
+                          count: "",
+                        };
+
+                        const isFirst = idx === 0;
+                        const isLast = idx === normalizedData.sectionOrder.length - 1;
+                        const customHeading = normalizedData.sectionTitles?.[sectionKey];
+
+                        return (
+                          <div
+                            key={sectionKey}
+                            className="flex items-center justify-between p-2.5 sm:p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-slate-300 hover:shadow-xs transition-all gap-2"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-sm font-semibold select-none shrink-0 border border-slate-200/50">
+                                {meta.emoji}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs sm:text-sm font-bold text-slate-800 truncate">
+                                    {meta.name}
+                                  </span>
+                                  {customHeading && (
+                                    <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-mono truncate max-w-[140px] sm:max-w-[200px]">
+                                      "{customHeading}"
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-400 truncate">
+                                  {meta.desc} • <span className="text-slate-600 font-medium">{meta.count}</span>
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full mr-1">
+                                #{idx + 1}
+                              </span>
+                              {/* Move Up 🔼 */}
+                              <button
+                                type="button"
+                                disabled={isFirst}
+                                onClick={() => moveSection(idx, "up")}
+                                title={isFirst ? "Already at top" : "Move Section Up 🔼"}
+                                className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs transition-all ${
+                                  isFirst
+                                    ? "opacity-25 cursor-not-allowed filter grayscale"
+                                    : "hover:bg-slate-100 hover:scale-115 active:scale-75 cursor-pointer text-slate-700 border border-slate-200"
+                                }`}
+                              >
+                                🔼
+                              </button>
+                              {/* Move Down 🔽 */}
+                              <button
+                                type="button"
+                                disabled={isLast}
+                                onClick={() => moveSection(idx, "down")}
+                                title={isLast ? "Already at bottom" : "Move Section Down 🔽"}
+                                className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs transition-all ${
+                                  isLast
+                                    ? "opacity-25 cursor-not-allowed filter grayscale"
+                                    : "hover:bg-slate-100 hover:scale-115 active:scale-75 cursor-pointer text-slate-700 border border-slate-200"
+                                }`}
+                              >
+                                🔽
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <FormField
-                      label="Career Objective Title"
-                      value={normalizedData.sectionTitles?.objective || "CAREER OBJECTIVE"}
-                      onChange={(e) => handleUpdateField("sectionTitles", "objective", e.target.value)}
-                      placeholder="e.g. CAREER OBJECTIVE"
-                    />
-                    <FormField
-                      label="Education Title"
-                      value={normalizedData.sectionTitles?.education || "EDUCATION"}
-                      onChange={(e) => handleUpdateField("sectionTitles", "education", e.target.value)}
-                      placeholder="e.g. EDUCATION"
-                    />
-                    <FormField
-                      label="Skills Title"
-                      value={normalizedData.sectionTitles?.skills || "SKILLS"}
-                      onChange={(e) => handleUpdateField("sectionTitles", "skills", e.target.value)}
-                      placeholder="e.g. SKILLS"
-                    />
-                    <FormField
-                      label="Experience Title"
-                      value={normalizedData.sectionTitles?.experience || "INTERNSHIP EXPERIENCE"}
-                      onChange={(e) => handleUpdateField("sectionTitles", "experience", e.target.value)}
-                      placeholder="e.g. INTERNSHIP EXPERIENCE or WORK EXPERIENCE"
-                    />
-                    <FormField
-                      label="Projects Title"
-                      value={normalizedData.sectionTitles?.projects || "RESEARCH PROJECTS"}
-                      onChange={(e) => handleUpdateField("sectionTitles", "projects", e.target.value)}
-                      placeholder="e.g. RESEARCH PROJECTS or KEY PROJECTS"
-                    />
-                    <FormField
-                      label="Certifications Title"
-                      value={normalizedData.sectionTitles?.certifications || "CERTIFICATIONS"}
-                      onChange={(e) => handleUpdateField("sectionTitles", "certifications", e.target.value)}
-                      placeholder="e.g. CERTIFICATIONS"
-                    />
-                    <div className="sm:col-span-2">
+                  {/* Section Titles Customization */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-900">
+                          Customize Header Titles
+                        </h4>
+                        <p className="text-xs text-slate-500">
+                          Edit the text printed on each section header of your resume.
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs text-slate-500 hover:text-slate-900"
+                        onClick={() => {
+                          setResumeData((prev) => ({
+                            ...prev,
+                            sectionTitles: {
+                              objective: "CAREER OBJECTIVE",
+                              education: "EDUCATION",
+                              skills: "SKILLS",
+                              experience: "INTERNSHIP EXPERIENCE",
+                              projects: "RESEARCH PROJECTS",
+                              certifications: "CERTIFICATIONS",
+                              additionalInfo: "ADDITIONAL INFORMATION",
+                            },
+                          }));
+                        }}
+                      >
+                        <RotateCcw className="w-3 h-3 mr-1" /> Reset Titles
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                       <FormField
-                        label="Additional Information Title"
-                        value={normalizedData.sectionTitles?.additionalInfo || "ADDITIONAL INFORMATION"}
-                        onChange={(e) => handleUpdateField("sectionTitles", "additionalInfo", e.target.value)}
-                        placeholder="e.g. ADDITIONAL INFORMATION"
+                        label="Career Objective Title"
+                        value={normalizedData.sectionTitles?.objective || "CAREER OBJECTIVE"}
+                        onChange={(e) => handleUpdateField("sectionTitles", "objective", e.target.value)}
+                        placeholder="e.g. CAREER OBJECTIVE"
                       />
+                      <FormField
+                        label="Education Title"
+                        value={normalizedData.sectionTitles?.education || "EDUCATION"}
+                        onChange={(e) => handleUpdateField("sectionTitles", "education", e.target.value)}
+                        placeholder="e.g. EDUCATION"
+                      />
+                      <FormField
+                        label="Skills Title"
+                        value={normalizedData.sectionTitles?.skills || "SKILLS"}
+                        onChange={(e) => handleUpdateField("sectionTitles", "skills", e.target.value)}
+                        placeholder="e.g. SKILLS"
+                      />
+                      <FormField
+                        label="Experience Title"
+                        value={normalizedData.sectionTitles?.experience || "INTERNSHIP EXPERIENCE"}
+                        onChange={(e) => handleUpdateField("sectionTitles", "experience", e.target.value)}
+                        placeholder="e.g. INTERNSHIP EXPERIENCE or WORK EXPERIENCE"
+                      />
+                      <FormField
+                        label="Projects Title"
+                        value={normalizedData.sectionTitles?.projects || "RESEARCH PROJECTS"}
+                        onChange={(e) => handleUpdateField("sectionTitles", "projects", e.target.value)}
+                        placeholder="e.g. RESEARCH PROJECTS or KEY PROJECTS"
+                      />
+                      <FormField
+                        label="Certifications Title"
+                        value={normalizedData.sectionTitles?.certifications || "CERTIFICATIONS"}
+                        onChange={(e) => handleUpdateField("sectionTitles", "certifications", e.target.value)}
+                        placeholder="e.g. CERTIFICATIONS"
+                      />
+                      <div className="sm:col-span-2">
+                        <FormField
+                          label="Additional Information Title"
+                          value={normalizedData.sectionTitles?.additionalInfo || "ADDITIONAL INFORMATION"}
+                          onChange={(e) => handleUpdateField("sectionTitles", "additionalInfo", e.target.value)}
+                          placeholder="e.g. ADDITIONAL INFORMATION"
+                        />
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
