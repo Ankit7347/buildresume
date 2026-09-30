@@ -20,6 +20,10 @@ import {
   Info,
   SlidersHorizontal,
   RotateCcw,
+  Upload,
+  FileJson,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -57,6 +61,10 @@ export default function BuilderPage() {
   const [activeTemplate, setActiveTemplate] = useState("corporate");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+  const [jsonInput, setJsonInput] = useState("");
+  const [jsonError, setJsonError] = useState("");
+  const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
 
@@ -185,6 +193,76 @@ export default function BuilderPage() {
     }));
   };
 
+  const exportAsJSON = () => {
+    try {
+      const dataToExport = resumeData || normalizedData || initialResumeData;
+      const jsonString = JSON.stringify(dataToExport, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const personName = (normalizedData.personalInfo?.fullName || "Resume")
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]/g, "_");
+      link.href = url;
+      link.download = `${personName || "Resume"}_Data.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export JSON failed:", err);
+      alert("Failed to export JSON: " + err.message);
+    }
+  };
+
+  const copyJSONToClipboard = () => {
+    try {
+      const dataToExport = resumeData || normalizedData || initialResumeData;
+      const jsonString = JSON.stringify(dataToExport, null, 2);
+      navigator.clipboard.writeText(jsonString).then(() => {
+        setCopiedSuccess(true);
+        setTimeout(() => setCopiedSuccess(false), 2500);
+      });
+    } catch (err) {
+      console.error("Copy JSON failed:", err);
+    }
+  };
+
+  const handleImportJSON = (customString) => {
+    const rawText = typeof customString === "string" ? customString : jsonInput;
+    if (!rawText.trim()) {
+      setJsonError("Please paste valid JSON text or upload a JSON file.");
+      return;
+    }
+    try {
+      setJsonError("");
+      const parsed = JSON.parse(rawText.trim());
+      if (!parsed || typeof parsed !== "object") {
+        throw new Error("Invalid format. The JSON must be an object representing resume data.");
+      }
+      setResumeData(parsed);
+      setIsJsonModalOpen(false);
+      setJsonInput("");
+      alert("Successfully auto-filled all resume fields from JSON!");
+    } catch (err) {
+      setJsonError("JSON Parse Error: " + err.message);
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result;
+      if (typeof content === "string") {
+        setJsonInput(content);
+        handleImportJSON(content);
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const resetData = () => {
     if (
       confirm("Are you sure you want to clear all data? This cannot be undone.")
@@ -251,6 +329,28 @@ export default function BuilderPage() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportAsJSON}
+                    className="border-emerald-300 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition-colors font-semibold shadow-xs"
+                    title="Export and download your complete resume data as a JSON file"
+                  >
+                    <FileJson className="w-3.5 h-3.5 mr-1.5 text-emerald-600" /> Export JSON
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setJsonInput("");
+                      setJsonError("");
+                      setIsJsonModalOpen(true);
+                    }}
+                    className="border-blue-300 text-blue-800 bg-blue-50 hover:bg-blue-100 transition-colors font-medium shadow-xs"
+                    title="Paste or upload JSON to auto-fill all fields instantly"
+                  >
+                    <Upload className="w-3.5 h-3.5 mr-1.5 text-blue-600" /> Import JSON
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -1451,6 +1551,15 @@ export default function BuilderPage() {
                   <Button
                     size="sm"
                     variant="outline"
+                    onClick={exportAsJSON}
+                    className="bg-white border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold"
+                    title="Export and download your complete resume data as a JSON file"
+                  >
+                    <FileJson className="w-3.5 h-3.5 mr-1.5 text-emerald-600" /> Export JSON
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={() => setIsSettingsOpen(true)}
                     className="bg-white border-slate-200 text-slate-700"
                   >
@@ -1644,6 +1753,116 @@ export default function BuilderPage() {
             <DialogFooter>
               <Button onClick={() => setIsSettingsOpen(false)} className="w-full sm:w-auto">
                 Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* JSON Backup & Auto-fill Dialog */}
+        <Dialog open={isJsonModalOpen} onOpenChange={setIsJsonModalOpen}>
+          <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-lg">
+                <FileJson className="w-5 h-5 text-emerald-600" />
+                <span>Save & Restore Resume Data (JSON)</span>
+              </DialogTitle>
+              <p className="text-xs text-slate-500">
+                Safely backup your filled resume, download a backup JSON file, or paste JSON to auto-fill every field instantly.
+              </p>
+            </DialogHeader>
+
+            <div className="space-y-5 py-3">
+              {/* Section 1: Quick Export / Backup */}
+              <div className="p-4 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl space-y-3">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900">
+                    Export Current Work
+                  </h4>
+                  <p className="text-[11px] text-emerald-700">
+                    Download your entire resume as a JSON file or copy to clipboard.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={exportAsJSON}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
+                  >
+                    <Download className="w-3.5 h-3.5 mr-1.5" /> Download JSON File
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={copyJSONToClipboard}
+                    className="bg-white border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                  >
+                    {copiedSuccess ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-600" /> Copied to Clipboard!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 mr-1.5" /> Copy JSON
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Section 2: Import / Paste JSON */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Paste JSON to Auto-fill All Fields
+                  </Label>
+                  <label className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer underline flex items-center gap-1">
+                    <Upload className="w-3 h-3" />
+                    <span>Upload .json file</span>
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <textarea
+                  className="w-full h-44 bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y"
+                  placeholder='Paste JSON here, e.g.:&#10;{&#10;  "personalInfo": { "fullName": "..." },&#10;  "education": [...],&#10;  "skills": [...]&#10;}'
+                  value={jsonInput}
+                  onChange={(e) => {
+                    setJsonInput(e.target.value);
+                    if (jsonError) setJsonError("");
+                  }}
+                />
+
+                {jsonError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">
+                    ⚠️ {jsonError}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsJsonModalOpen(false)}
+                className="text-xs text-slate-500 w-full sm:w-auto"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => handleImportJSON()}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold w-full sm:w-auto shadow-sm"
+              >
+                <Upload className="w-4 h-4 mr-1.5" />
+                <span>Auto-fill All Fields</span>
               </Button>
             </DialogFooter>
           </DialogContent>
